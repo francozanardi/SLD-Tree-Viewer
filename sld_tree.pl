@@ -15,7 +15,11 @@ p(X):-
 	r(X).
 	
 q(X):-
-	writeln("es mayor a 0").
+	writeln("es mayor a 0"),
+	true,
+	fail.
+	
+q(X).
 	
 r(X):-
 	Lista = [X],
@@ -30,8 +34,9 @@ r(X):-
 % crearSLD/2 es el predicado encargado de crear el árbol para una consulta ingreada en su primer argumento.
 
 
+
 % En este caso tenemos una conjunción de reglas (o hechos), por lo tanto accesamos a cada uno.
-solve( (A, B), NodoPadre):-
+solve((A, B), NodoPadre):-
     solve(A, NodoPadre),
 	
 	% Aquí tomamos el nodo con mayor ID ya que, A podría haber sido una regla y tomar muchos nodos para solucionarse.
@@ -40,6 +45,8 @@ solve( (A, B), NodoPadre):-
 	getMaxID(UltimaID),
 	nodoArbol(nodo(UltimaID, Conj, IDP)),
     solve(B, nodo(UltimaID, Conj, IDP)).
+
+
 
 
 % A es una regla definida por el usuario, donde puede que después de ella se tengan que resolver más reglas que están en conjunción.
@@ -135,6 +142,7 @@ solve(A, nodo(IDPadre, _, _)):-
 
 
 crearSLD(A, Lista):-
+	A \= (_, _),
 	assertz(nodoArbol(nodo(0, [A], -1))),
 	solve(A, nodo(0, [A], -1)),
 	findall(Nodo, (nodoArbol(Nodo), writeln(Nodo)), Lista).
