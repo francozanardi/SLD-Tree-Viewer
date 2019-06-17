@@ -1,3 +1,6 @@
+% Falta analizar el tema del occurs_check y de las sustituciones.
+% Una posibilidad para el tema de las sustituciones es manejarlas vía java.
+
 a:- b, d.
 a:- c, b.
 d:- c, e.
@@ -13,11 +16,13 @@ p(X):-
 p(X):-
 	not(X > 0),
 	r(X).
+
+p(X). %Alternativa que siempre se cumple
 	
 q(X):-
-	writeln("es mayor a 0"),
+	0 = 0,
 	true,
-	fail.
+	0 = 1.
 	
 q(X).
 	
@@ -113,7 +118,7 @@ solve(A, nodo(IDPadre, [A | ConjuncionesRestantes], _)):-
 	assertz(nodoArbol(nodo(ID, ConjuncionesRestantes, IDPadre))),
 	
     write(A),
-    write(" es provisto por el sistema, por lo tanto no lo accesamos."),
+    write(" se cumple, pero es built-in, por ello no accedemos."),
     nl.
 
 % En caso de que A esté definida por el usuario y no se satisfaga entonces backtracking.
