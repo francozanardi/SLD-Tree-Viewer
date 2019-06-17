@@ -26,6 +26,11 @@ r(X):-
 	length(Lista, R),
 	append(Lista, Lista, NL),
 	length(NL, R2).
+	
+	
+x:- z, y; new.
+z:- 0=1;0=0.
+new:- 0>2;0=0,0=1,true;5+5=5+5.
 
 % La idea es hacer un meta-intérprete capaz de realizar un árbol SLD para un programa P.
 % Se hacen uso de assertz y retract para no verse afectado por el backtracking del meta-intérprete y conservar todo nodo,
@@ -64,18 +69,19 @@ solve(A, nodo(IDPadre, [A | ConjuncionesRestantes], _)):-
 	% y además de eso hay otras reglas que pueden instanciarse de distinta manera, lo que implicaría que aquí podríamos tomar otro camino.
 	% Por eso mismo nosotros comenzamos nuestro camino con una ID+1 de la última ID que falló.
 	% Notar que nuestro padre será IDPadre, ya que por tomar otro camino no deberíamos cambiar de padre.
+	
+	conjuncionesALista(B, BR, BResultado), % Esto irá formando los distintos posibles valores que va a tomar BR si B tiene ';'.
 	getMaxID(UltimaID),
 	ID is UltimaID + 1,
-	conjuncionesALista(B, BResultado),
 	append(BResultado, ConjuncionesRestantes, Rotulo),
 	assertz(nodoArbol(nodo(ID, Rotulo, IDPadre))),
 	
     write(A),
     write(" es la cabeza de una regla con cuerpo "),
-    write(B),
+    write(BR),
     nl,
 	
-    solve(B, nodo(ID, Rotulo, IDPadre)).
+    solve(BR, nodo(ID, Rotulo, IDPadre)).
 
 % A es un hecho definido por el usuario y se satisface, por lo tanto el nuevo rótulo será el del padre sin A.
 solve(A, nodo(IDPadre, [A | ConjuncionesRestantes], _)):-
@@ -97,7 +103,7 @@ solve(A, nodo(IDPadre, [A | ConjuncionesRestantes], _)):-
     nl.
 
 
-% En caso de que el predicado sea provisto por el sistema no podemos acceder a su cuerpo, por ello solo lo colocamos en el rótulo sin accederlo.
+% En caso de que A sea un predicado provisto por el sistema no podemos acceder a su cuerpo, por ello solo lo quitamos en el rótulo sin accederlo.
 solve(A, nodo(IDPadre, [A | ConjuncionesRestantes], _)):-
 	A \= (_, _),
 	predicate_property(A, built_in),
@@ -148,12 +154,23 @@ crearSLD(A, Lista):-
 	findall(Nodo, (nodoArbol(Nodo), writeln(Nodo)), Lista).
 
 
+conjuncionesALista(A, A, Lista):-
+	A \= (_; _),
+	conjuncionesALista(A, Lista).
+
+conjuncionesALista((A; B), A, Lista):-
+	conjuncionesALista(A, Lista).
+	
+conjuncionesALista((A; B), R, Lista):-
+	conjuncionesALista(B, R, Lista).
 
 conjuncionesALista(Elemento, [Elemento]):-
 	Elemento \= (_, _).
 
 conjuncionesALista((X, Xs), [X | Lista]):-
 	conjuncionesALista(Xs, Lista).
+	
+
 
 % getMaxID(-MaxID)	
 getMaxID(MaxID):-
