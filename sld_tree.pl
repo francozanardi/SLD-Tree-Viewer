@@ -153,9 +153,9 @@ solve(A, nodo(IDPadre, _, _)):-
 
 
 crearSLD(A, Lista):-
-	A \= (_, _),
-	assertz(nodoArbol(nodo(0, [A], -1))),
-	solve(A, nodo(0, [A], -1)),
+	conjuncionesALista(A, ConjuncionesDeA, Rotulo),
+	assertz(nodoArbol(nodo(0, Rotulo, -1))),
+	solve(ConjuncionesDeA, nodo(0, Rotulo, -1)),
 	findall(Nodo, (nodoArbol(Nodo), writeln(Nodo)), Lista).
 
 
