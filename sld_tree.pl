@@ -1,6 +1,9 @@
 % Falta analizar el tema del occurs_check y de las sustituciones.
 % Una posibilidad para el tema de las sustituciones es manejarlas vía java.
 
+:- use_module(library(aggregate)).
+:- dynamic datos/1.
+
 a:- b, d.
 a:- c, b.
 d:- c, e.
@@ -43,7 +46,58 @@ new:- 0>2;0=0,0=1,true;5+5=5+5.
 % Además no se acceden a predicados predefinidos por el sistema (built-in) y solo se evalúa la veracidad de estos.
 % crearSLD/2 es el predicado encargado de crear el árbol para una consulta ingreada en su primer argumento.
 
+% Nueva implementación.
+% arbol(rama(ID, fotogramaAparicion, IDNodoP, IDNodoH, cut = (bitCut, fotograma))) % Si IDNodoH = -1, entonces éste aún no se conoce.
+% arbol(nodo(ID, IDPadre, fotogramaAparicion, rotulo))
 
+% Llevamos con assertz y retract la última ID dada a un nodo y el fotograma actual.
+
+% La idea para el cut es reconocerlo y apartir de ahí buscar toda rama que se necesite modificar.
+
+datos(fotogramaActual(1)).
+datos(ultimaID_nodo(0)).
+datos(ultimaID_rama(0)).
+
+agregarNodo(Rotulo, IDNodoP, nodo(IDnew, IDNodoP, Fot, Rotulo)):-
+	datos(fotogramaActual(Fot)),
+	datos(ultimaID_nodo(ID)),
+	IDnew is ID+1,
+	assertz(arbol(nodo(IDnew, IDNodoP, Fot, Rotulo))), % Agregamos efectivamente el nodo.
+	
+	%Actualizamos los datos correspondientes.
+	retract(datos(ultimaID_nodo(ID))),
+	assertz(datos(ultimaID_nodo(IDnew))).
+	
+agregarRama(NodoP, NodoH, rama(IDnew, Fot, NodoP, NodoH, (0, 0))):-
+	datos(fotogramaActual(Fot)),
+	datos(ultimaID_rama(ID)),
+	IDnew is ID+1,
+	assertz(arbol(rama(IDnew, Fot, NodoP, NodoH, (0,0)))), % Agregamos efectivamente el nodo.
+	
+	%Actualizamos los datos correspondientes.
+	retract(datos(ultimaID_rama(ID))),
+	assertz(datos(ultimaID_rama(IDnew))).
+	
+aumentarFotogramaActual:-
+	retract(datos(fotogramaActual(F))),
+	NF is F+1,
+	assertz(datos(fotogramaActual(NF))).
+	
+agregarRamas(Cant, NodoP):-
+	forall( between(1, Cant, _), agregarRama(NodoP, -1, _)).
+	
+buscarRamaLibre(Rama, IDMin):-
+	arbol(Rama),
+	esMenorID(Rama, IDMin),
+	!.
+	
+esMenorID(rama(ID1, _, _, -1, (0,0)), IDMin):-
+	ID1 >= IDMin,
+	forall((arbol(rama(ID2, _, _, -1, (0, 0))), ID2 \= ID1, ID2 >= IDMin), ID1 < ID2).
+	
+cambiarHijoRama(rama(ID, Fot, NodoP, NodoH, Cut), NodoH_nuevo):-
+	retract(arbol(rama(ID, Fot, NodoP, NodoH, Cut))),
+	assertz(arbol(rama(ID, Fot, NodoP, NodoH_nuevo, Cut))).
 
 % En este caso tenemos una conjunción de reglas (o hechos), por lo tanto accesamos a cada uno.
 solve((A, B), NodoPadre):-
@@ -53,82 +107,129 @@ solve((A, B), NodoPadre):-
 	% Si se está aquí entonces A se resolvió, y el nodo con ID mayor es quien lo resolvió, entonces este nodo será el padre 
 	% de las conjunciones restantes.
 	getMaxID(UltimaID),
-	nodoArbol(nodo(UltimaID, Conj, IDP)),
-    solve(B, nodo(UltimaID, Conj, IDP)).
+	arbol(nodo(UltimaID, IDP, Fot, Conj)),
+    solve(B, nodo(UltimaID, IDP, Fot, Conj)).
 
 
 
 
-% A es una regla definida por el usuario, donde puede que después de ella se tengan que resolver más reglas que están en conjunción.
-% Por ello al rotulo de su padre, debe quitarse ella y reemplazarse por su cuerpo.
-solve(A, nodo(IDPadre, [A | ConjuncionesRestantes], _)):-
+% A es una regla (o hecho) definida por el usuario.
+solve(A, nodo(IDPadre, _, _, [A | ConjuncionesRestantes])):-
 
     % A \= true,
     A \= (_, _),
 	% Verificamos que el predicado no sea uno provisto por el sistema (built_in), en caso de serlo es privado y no podemos acceder a su cuerpo
-	not(predicate_property(A, built_in)), 
+	not(predicate_property(A, built_in)),
+	
+	% Arriba de conjuncionesALista/3 y clause/2 tenemos que agregar las ramas, una para cada posible solución.
+	% Para ello utilizamos: aggregate_all(count, (clause(A, BP), conjuncionesALista(BP, _, _)), C).
+	% Luego agregamos C ramas.
+	
+	datos(ultimaID_rama(IDUltimaRama)),
+	IDPrimeraRama is IDUltimaRama+1, %Guardamos el ID de la primera rama.
+	
+	aggregate_all(count, (clause(A, BP), conjuncionesALista(BP, _, _)), C), 
+	% Acá tengo un error, estoy agregando una rama por cada solución posible de A, también agregando ramas por los hechos y después me estoy "saltando"
+	% estos hechos y estoy usando sus ramas que le corresponden para ramas de las reglas que siguen, esto está MAL. Si A tuviese como soluciones posibles:
+	% regla, hecho, regla; el árbol quedaría mal representado: regla, regla, hecho. Además de que cuando vaya al predicado que se encarga de los hechos no 
+	% debería agregar ramas, ya que todas se agregaron aquí.
+	
+	% Solución posible: que este predicado se encargue tanto de las reglas como los hechos.
+	agregarRamas(C, IDPadre),
+	
     clause(A, B),
-  	B \= true,
 	
-	% Acá buscamos la UltimaID agregada y no hacemos IDPadre+1, esto es porque si hay backtracking porque falla alguna conjunción restante
-	% y además de eso hay otras reglas que pueden instanciarse de distinta manera, lo que implicaría que aquí podríamos tomar otro camino.
-	% Por eso mismo nosotros comenzamos nuestro camino con una ID+1 de la última ID que falló.
-	% Notar que nuestro padre será IDPadre, ya que por tomar otro camino no deberíamos cambiar de padre.
-	
-	conjuncionesALista(B, BR, BResultado), % Esto irá formando los distintos posibles valores que va a tomar BR si B tiene ';'.
-	getMaxID(UltimaID),
-	ID is UltimaID + 1,
-	append(BResultado, ConjuncionesRestantes, Rotulo),
-	assertz(nodoArbol(nodo(ID, Rotulo, IDPadre))),
-	
-    write(A),
-    write(" es la cabeza de una regla con cuerpo "),
-    write(BR),
-    nl,
-	
-    solve(BR, nodo(ID, Rotulo, IDPadre)).
 
-% A es un hecho definido por el usuario y se satisface, por lo tanto el nuevo rótulo será el del padre sin A.
-solve(A, nodo(IDPadre, [A | ConjuncionesRestantes], _)):-
-    % A \= true,
 	
-    A \= (_, _),
-	not(predicate_property(A, built_in)), % verificamos que no sea algo provisto por el sistema
-    clause(A, true),
+	(
+		% A es un hecho definido por el usuario y se satisface, por lo tanto el nuevo rótulo será el del padre sin A.
+		B = true,
+		agregarNodo(ConjuncionesRestantes, IDPadre, nodo(ID, _, _, _)),
+		
+		buscarRamaLibre(Rama, IDPrimeraRama),
+		cambiarHijoRama(Rama, ID),
+		
+		write(A),
+		write(" es la cabeza de un hecho."),
+		nl,
+		aumentarFotogramaActual
+	;
+		% A es una regla definida por el usuario, donde puede que después de ella se tengan que resolver más reglas que están en conjunción.
+		% Por ello al rotulo de su padre, debe quitarse ella y reemplazarse por su cuerpo.
 	
-	% Acá buscamos la UltimaID agregada y no hacemos IDPadre+1, esto es porque si hay backtracking porque falla alguna conjuncion restante
-	% y además de eso hay otros hechos que pueden instanciarse de distinta manera, entonces podemos aquí tomar otro camino.
-	% Notar que nuestro padre será IDPadre, ya que por tomar otro camino no deberíamos cambiar de padre.
-	getMaxID(UltimaID),
-	ID is UltimaID + 1,
-	assertz(nodoArbol(nodo(ID, ConjuncionesRestantes, IDPadre))),
-	
-    write(A),
-    write(" es la cabeza de un hecho."),
-    nl.
+		% Solución posible al problema planteado arriba: usar un if con B = true, si es distinto hacemos esto,
+		% sino, si es igual, hacemos lo que corresponda en el caso de un hecho.
+		B \= true,
+		
+			% BR contiene conjunciones obtenidads a partir de B.
+			% BResultado tiene esas mismas conjunciones pero en una lista.
+			% Ejemplo:
+			% 			B = (a, b; c)
+			%
+			%			BR = (a, b)
+			%			BResultado = [a, b]
+			%			; (si pedimos mas soluciones)
+			%			BR = c
+			%			BResultado = [c]
+			%			(acá terminan las soluciones)
+		conjuncionesALista(B, BR, BResultado),
+		
+		% Luego, acá, abajo de conjuncionesALista/3, tenemos que asociar el nodo agregado con la rama que corresponda.
+		% La rama que corresponda será aquella que tenga menor ID y como NO tenga nodo hijo asociado.
+		
+		append(BResultado, ConjuncionesRestantes, Rotulo),
+		agregarNodo(Rotulo, IDPadre, NodoAgregado),
+		
+		buscarRamaLibre(Rama, IDPrimeraRama),
+		NodoAgregado = nodo(ID, _, _, _),
+		cambiarHijoRama(Rama, ID),
+		
+		% Acá buscamos la UltimaID agregada y no hacemos IDPadre+1, esto es porque si hay backtracking porque falla alguna conjunción restante
+		% y además de eso hay otras reglas que pueden instanciarse de distinta manera, lo que implicaría que aquí podríamos tomar otro camino.
+		% Por eso mismo nosotros comenzamos nuestro camino con una ID+1 de la última ID que falló.
+		% Notar que nuestro padre será IDPadre, ya que por tomar otro camino no deberíamos cambiar de padre.
+		
+		write(A),
+		write(" es la cabeza de una regla con cuerpo "),
+		write(BR),
+		nl,
+		aumentarFotogramaActual, % esto tiene que hacerse antes del solve.
+		solve(BR, NodoAgregado)
+	).
+
 
 
 % En caso de que A sea un predicado provisto por el sistema no podemos acceder a su cuerpo, por ello solo lo quitamos en el rótulo sin accederlo.
-solve(A, nodo(IDPadre, [A | ConjuncionesRestantes], _)):-
+solve(A, nodo(IDPadre, _, _, [A | ConjuncionesRestantes])):-
 	A \= (_, _),
 	predicate_property(A, built_in),
+	
+	datos(ultimaID_rama(IDUltimaRama)),
+	IDPrimeraRama is IDUltimaRama+1, %Guardamos el ID de la primera rama.
+	aggregate_all(count, A, C),
+	agregarRamas(C, IDPadre),
+	
 	A, %simplemente invocamos A para ver si se satisface.
 	
-	ID is IDPadre + 1,
-	assertz(nodoArbol(nodo(ID, ConjuncionesRestantes, IDPadre))),
+	agregarNodo(ConjuncionesRestantes, IDPadre, nodo(ID, _, _, _)),
+	
+	buscarRamaLibre(Rama, IDPrimeraRama),
+	cambiarHijoRama(Rama, ID),
+	aumentarFotogramaActual,
 	
     write(A),
     write(" se cumple, pero es built-in, por ello no accedemos."),
     nl.
 
 % En caso de que A esté definida por el usuario y no se satisfaga entonces backtracking.
-solve(A, nodo(IDPadre, _, _)):-
+solve(A, nodo(IDPadre, _, _, _)):-
 	A \= (_, _),
 	not(predicate_property(A, built_in)),
 	not(clause(A, _)), % si A no se puede satisfacer con nada entonces falla.
 	
-	ID is IDPadre + 1,
-	assertz(nodoArbol(nodo(ID, [fail], IDPadre))),
+	agregarNodo([fail], IDPadre, nodo(ID, _, _, _)),
+	agregarRama(IDPadre, ID, _),
+	aumentarFotogramaActual,
 	
     write("Falla "),
     write(A),
@@ -137,13 +238,14 @@ solve(A, nodo(IDPadre, _, _)):-
     fail.
 	
 % En caso de que A sea provista por el sistema (built-in) y no se satisfaga entonces backtracking.
-solve(A, nodo(IDPadre, _, _)):-
+solve(A, nodo(IDPadre, _, _, _)):-
 	A \= (_, _),
 	predicate_property(A, built_in),
 	not(A),
 	
-	ID is IDPadre + 1,
-	assertz(nodoArbol(nodo(ID, [fail], IDPadre))),
+	agregarNodo([fail], IDPadre, nodo(ID, _, _, _)),
+	agregarRama(IDPadre, ID, _),
+	aumentarFotogramaActual,
 	
     write("Falla "),
     write(A),
@@ -154,9 +256,9 @@ solve(A, nodo(IDPadre, _, _)):-
 
 crearSLD(A, Lista):-
 	conjuncionesALista(A, ConjuncionesDeA, Rotulo),
-	assertz(nodoArbol(nodo(0, Rotulo, -1))),
-	solve(ConjuncionesDeA, nodo(0, Rotulo, -1)),
-	findall(Nodo, (nodoArbol(Nodo), writeln(Nodo)), Lista).
+	assertz(arbol(nodo(0, -1, 0, Rotulo))), % Agregamos la raiz del árbol en el fotograma 0.
+	solve(ConjuncionesDeA, nodo(0, -1, 0, Rotulo)),
+	findall(Nodo, (arbol(Nodo), writeln(Nodo)), Lista).
 
 
 conjuncionesALista(A, A, Lista):-
@@ -179,11 +281,20 @@ conjuncionesALista((X, Xs), [X | Lista]):-
 
 % getMaxID(-MaxID)	
 getMaxID(MaxID):-
-	nodoArbol(nodo(MaxID, _, _)),
-	esMayor(nodo(MaxID, _, _)).
+	arbol(nodo(MaxID, _, _, _)),
+	esMayor(nodo(MaxID, _, _, _)).
 	
-esMayor(nodo(ID, _, _)):-
-	forall( (nodoArbol(nodo(IDaux, _, _)), ID \= IDaux), IDaux < ID). %Las IDs son únicas.
+esMayor(nodo(ID, _, _, _)):-
+	forall( (arbol(nodo(IDaux, _, _, _)), ID \= IDaux), IDaux < ID). %Las IDs son únicas.
 	
-eliminarNodos:-
-	forall(nodoArbol(N), retract(nodoArbol(N))).
+eliminarArbol:-
+	forall(arbol(P), retract(arbol(P))),
+	
+	retract(datos(fotogramaActual(_))),
+	retract(datos(ultimaID_nodo(_))),
+	retract(datos(ultimaID_rama(_))),
+	
+	assertz(datos(fotogramaActual(1))),
+	assertz(datos(ultimaID_nodo(0))),
+	assertz(datos(ultimaID_rama(0))).
+	
