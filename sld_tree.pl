@@ -101,6 +101,7 @@ cambiarHijoRama(rama(ID, Fot, NodoP, NodoH, Cut), NodoH_nuevo):-
 
 % En este caso tenemos una conjunción de reglas (o hechos), por lo tanto accesamos a cada uno.
 solve((A, B), NodoPadre):-
+	!,
     solve(A, NodoPadre),
 	
 	% Aquí tomamos el nodo con mayor ID ya que, A podría haber sido una regla y tomar muchos nodos para solucionarse.
@@ -113,11 +114,11 @@ solve((A, B), NodoPadre):-
 
 
 
-% A es una regla (o hecho) definida por el usuario.
+% A es una regla (o hecho) definida por el usuario donde tiene al menos una posible solución.
 solve(A, nodo(IDPadre, _, _, [A | ConjuncionesRestantes])):-
 
     % A \= true,
-    A \= (_, _),
+    % A \= (_, _),
 	% Verificamos que el predicado no sea uno provisto por el sistema (built_in), en caso de serlo es privado y no podemos acceder a su cuerpo
 	not(predicate_property(A, built_in)),
 	
@@ -129,12 +130,8 @@ solve(A, nodo(IDPadre, _, _, [A | ConjuncionesRestantes])):-
 	IDPrimeraRama is IDUltimaRama+1, %Guardamos el ID de la primera rama.
 	
 	aggregate_all(count, (clause(A, BP), conjuncionesALista(BP, _, _)), C), 
-	% Acá tengo un error, estoy agregando una rama por cada solución posible de A, también agregando ramas por los hechos y después me estoy "saltando"
-	% estos hechos y estoy usando sus ramas que le corresponden para ramas de las reglas que siguen, esto está MAL. Si A tuviese como soluciones posibles:
-	% regla, hecho, regla; el árbol quedaría mal representado: regla, regla, hecho. Además de que cuando vaya al predicado que se encarga de los hechos no 
-	% debería agregar ramas, ya que todas se agregaron aquí.
-	
-	% Solución posible: que este predicado se encargue tanto de las reglas como los hechos.
+	C > 0,
+	!, % Si C > 0, entonces existe algún cuerpo posible, borramos toda solución alternativa para mayor eficiencia.
 	agregarRamas(C, IDPadre),
 	
     clause(A, B),
@@ -199,14 +196,17 @@ solve(A, nodo(IDPadre, _, _, [A | ConjuncionesRestantes])):-
 
 
 
-% En caso de que A sea un predicado provisto por el sistema no podemos acceder a su cuerpo, por ello solo lo quitamos en el rótulo sin accederlo.
+% En caso de que A sea un predicado provisto por el sistema, por lo que no podemos acceder a su cuerpo. Por ello solo lo quitamos en el rótulo sin accederlo.
+% Además A tiene al menos una solución.
 solve(A, nodo(IDPadre, _, _, [A | ConjuncionesRestantes])):-
-	A \= (_, _),
+	% A \= (_, _),
 	predicate_property(A, built_in),
 	
 	datos(ultimaID_rama(IDUltimaRama)),
 	IDPrimeraRama is IDUltimaRama+1, %Guardamos el ID de la primera rama.
 	aggregate_all(count, A, C),
+	C > 0,
+	!, % Si C > 0, entonces existe algún cuerpo posible, borramos toda solución alternativa para mayor eficiencia.
 	agregarRamas(C, IDPadre),
 	
 	A, %simplemente invocamos A para ver si se satisface.
@@ -223,9 +223,10 @@ solve(A, nodo(IDPadre, _, _, [A | ConjuncionesRestantes])):-
 
 % En caso de que A esté definida por el usuario y no se satisfaga entonces backtracking.
 solve(A, nodo(IDPadre, _, _, _)):-
-	A \= (_, _),
+	% A \= (_, _),
 	not(predicate_property(A, built_in)),
 	not(clause(A, _)), % si A no se puede satisfacer con nada entonces falla.
+	!, % por cuestiones de eficiencia.
 	
 	agregarNodo([fail], IDPadre, nodo(ID, _, _, _)),
 	agregarRama(IDPadre, ID, _),
@@ -239,9 +240,10 @@ solve(A, nodo(IDPadre, _, _, _)):-
 	
 % En caso de que A sea provista por el sistema (built-in) y no se satisfaga entonces backtracking.
 solve(A, nodo(IDPadre, _, _, _)):-
-	A \= (_, _),
-	predicate_property(A, built_in),
-	not(A),
+	% A \= (_, _),
+	% predicate_property(A, built_in),
+	% not(A),
+	% acá la condición junto al cut no son necesarias, dado a que no hay más alternativas y las condiciones son excluyentes y extensivas (i.e.: abarcan todas las posibilidades)
 	
 	agregarNodo([fail], IDPadre, nodo(ID, _, _, _)),
 	agregarRama(IDPadre, ID, _),
