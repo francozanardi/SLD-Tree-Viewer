@@ -47,7 +47,7 @@ new:- 0>2;0=0,0=1,true;5+5=5+5.
 % crearSLD/2 es el predicado encargado de crear el árbol para una consulta ingreada en su primer argumento.
 
 % Nueva implementación.
-% arbol(rama(ID, fotogramaAparicion, IDNodoP, IDNodoH, cut = (bitCut, fotograma))) % Si IDNodoH = -1, entonces éste aún no se conoce.
+% arbol(rama(ID, fotogramaAparicion, IDNodoP, IDNodoH, FotogramaCut)) % Si IDNodoH = -1, entonces éste aún no se conoce. Si FotogramaCut = -1 entonces no hay cut.
 % arbol(nodo(ID, IDPadre, fotogramaAparicion, rotulo))
 
 % Llevamos con assertz y retract la última ID dada a un nodo y el fotograma actual.
@@ -68,11 +68,11 @@ agregarNodo(Rotulo, IDNodoP, nodo(IDnew, IDNodoP, Fot, Rotulo)):-
 	retract(datos(ultimaID_nodo(ID))),
 	assertz(datos(ultimaID_nodo(IDnew))).
 	
-agregarRama(NodoP, NodoH, rama(IDnew, Fot, NodoP, NodoH, (0, 0))):-
+agregarRama(NodoP, NodoH, rama(IDnew, Fot, NodoP, NodoH, -1)):-
 	datos(fotogramaActual(Fot)),
 	datos(ultimaID_rama(ID)),
 	IDnew is ID+1,
-	assertz(arbol(rama(IDnew, Fot, NodoP, NodoH, (0,0)))), % Agregamos efectivamente el nodo.
+	assertz(arbol(rama(IDnew, Fot, NodoP, NodoH, -1))), % Agregamos efectivamente el nodo.
 	
 	%Actualizamos los datos correspondientes.
 	retract(datos(ultimaID_rama(ID))),
@@ -91,9 +91,9 @@ buscarRamaLibre(Rama, IDMin):-
 	esMenorID(Rama, IDMin),
 	!.
 	
-esMenorID(rama(ID1, _, _, -1, (0,0)), IDMin):-
+esMenorID(rama(ID1, _, _, -1, -1), IDMin):-
 	ID1 >= IDMin,
-	forall((arbol(rama(ID2, _, _, -1, (0, 0))), ID2 \= ID1, ID2 >= IDMin), ID1 < ID2).
+	forall((arbol(rama(ID2, _, _, -1, -1)), ID2 \= ID1, ID2 >= IDMin), ID1 < ID2).
 	
 cambiarHijoRama(rama(ID, Fot, NodoP, NodoH, Cut), NodoH_nuevo):-
 	retract(arbol(rama(ID, Fot, NodoP, NodoH, Cut))),
