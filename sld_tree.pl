@@ -1,6 +1,9 @@
 % Falta analizar el tema del occurs_check y de las sustituciones.
 % Una posibilidad para el tema de las sustituciones es manejarlas vía java.
 
+% RESOLVER LOS PROBLEMAS CON EL ;
+% PODEMOS OPTAR POR MIRAR LA DEFINICIÓN EN EL LIBRO DE SWIPL Y DE AHÍ TOMAR UNA IDEA.
+
 :- use_module(library(aggregate)).
 :- dynamic datos/1.
 
@@ -35,7 +38,45 @@ r(X):-
 	append(Lista, Lista, NL),
 	length(NL, R2).
 	
-	
+
+pertenece(X, [X | Xs]):-
+	!.
+
+pertenece(X, [A | Xs]):-
+	pertenece(X, Xs).
+
+
+a(X):-
+	X > 0,
+	b(X),
+	!,
+	X = 2.
+
+a(_).
+
+b(1).
+b(2).
+
+test :-
+    writeln("entrada."),
+    between(1, 2, X),
+    write("X: "),write(X),nl,
+    %0 = 1,
+    
+    (
+		writeln("Sentencia A."),
+		X = 1,
+		!,
+		0 = 1
+    ;
+		writeln("Sentencia B."),
+		X = 2
+    ),
+    
+    writeln(X),
+    writeln("Sentencia compartida.").
+
+
 x:- z, y; new.
 z:- 0=1;0=0.
 new:- 0>2;0=0,0=1,true;5+5=5+5.
@@ -57,6 +98,7 @@ new:- 0>2;0=0,0=1,true;5+5=5+5.
 datos(fotogramaActual(1)).
 datos(ultimaID_nodo(0)).
 datos(ultimaID_rama(0)).
+datos(nodosAfectadosPorCut([])). % nodosAfectadosPorCut tendrá una lista con todos los nodos a los cuales les fueron podadas las ramas hijas.
 
 agregarNodo(Rotulo, IDNodoP, nodo(IDnew, IDNodoP, Fot, Rotulo)):-
 	datos(fotogramaActual(Fot)),
@@ -98,6 +140,38 @@ esMenorID(rama(ID1, _, _, -1, -1), IDMin):-
 cambiarHijoRama(rama(ID, Fot, NodoP, NodoH, Cut), NodoH_nuevo):-
 	retract(arbol(rama(ID, Fot, NodoP, NodoH, Cut))),
 	assertz(arbol(rama(ID, Fot, NodoP, NodoH_nuevo, Cut))).
+	
+
+resolverCut(nodo(_, _, _, Rotulo)):-
+	not(member(!, Rotulo)),
+	!.
+	
+resolverCut(nodo(_, IDPadre, _, _)):-
+	arbol(nodo(IDPadre, IDAbuelo, FotPadre, RotuloPadre)),
+	
+	forall(	
+				arbol(rama(RamaID, RamaFot, IDPadre, -1, -1)), 
+				(
+					retract(arbol(rama(RamaID, RamaFot, IDPadre, -1, -1))),
+					datos(fotogramaActual(FActual)),
+					assertz(arbol(rama(RamaID, RamaFot, IDPadre, -1, FActual))),
+					
+					% esto se puede hacer mejor creando otro predicado y usando cuts, así evitamos doble member.
+					% si el nodo con ramas hijas pododas no está agregada a la lista lo agregamos.
+					datos(nodosAfectadosPorCut(L)),
+					(
+						not(member(nodo(IDPadre, IDAbuelo, FotPadre, RotuloPadre), L)),
+						retract(datos(nodosAfectadosPorCut(L))),
+						assertz(datos(nodosAfectadosPorCut([nodo(IDPadre, IDAbuelo, FotPadre, RotuloPadre) | L])))
+					;
+						member(nodo(IDPadre, IDAbuelo, FotPadre, RotuloPadre), L)
+					)
+				)
+			),
+			
+	resolverCut(nodo(IDPadre, IDAbuelo, FotPadre, RotuloPadre)).
+	
+	
 
 % En este caso tenemos una conjunción de reglas (o hechos), por lo tanto accesamos a cada uno.
 solve((A, B), NodoPadre):-
@@ -115,7 +189,7 @@ solve((A, B), NodoPadre):-
 
 
 % A es una regla (o hecho) definida por el usuario donde tiene al menos una posible solución.
-solve(A, nodo(IDPadre, _, _, [A | ConjuncionesRestantes])):-
+solve(A, nodo(IDPadre, IDAbuelo, FotPadre, [A | ConjuncionesRestantes])):-
 
     % A \= true,
     % A \= (_, _),
@@ -136,7 +210,13 @@ solve(A, nodo(IDPadre, _, _, [A | ConjuncionesRestantes])):-
 	
     clause(A, B),
 	
-
+	%solamente continuamos si el nodo padre no fue afectado por cuts
+	datos(nodosAfectadosPorCut(NodosAfectados)),
+	not(member(nodo(IDPadre, IDAbuelo, FotPadre, [A | ConjuncionesRestantes]), NodosAfectados)),
+	
+	% Acá está el problema de los cuts! No estoy podando las soluciones alternativas de este clause como debería hacerlo si correspondiese!
+	% debería acá mismo ejecutar un cut si y solo si hay un cut en el rótulo de ConjuncionesRestantes y ese cut se va a ejecutar, es decir, no falla 
+	% ninguna sentencia anterior.
 	
 	(
 		% A es un hecho definido por el usuario y se satisface, por lo tanto el nuevo rótulo será el del padre sin A.
@@ -198,7 +278,7 @@ solve(A, nodo(IDPadre, _, _, [A | ConjuncionesRestantes])):-
 
 % En caso de que A sea un predicado provisto por el sistema, por lo que no podemos acceder a su cuerpo. Por ello solo lo quitamos en el rótulo sin accederlo.
 % Además A tiene al menos una solución.
-solve(A, nodo(IDPadre, _, _, [A | ConjuncionesRestantes])):-
+solve(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes])):-
 	% A \= (_, _),
 	predicate_property(A, built_in),
 	
@@ -209,17 +289,38 @@ solve(A, nodo(IDPadre, _, _, [A | ConjuncionesRestantes])):-
 	!, % Si C > 0, entonces existe algún cuerpo posible, borramos toda solución alternativa para mayor eficiencia.
 	agregarRamas(C, IDPadre),
 	
-	A, %simplemente invocamos A para ver si se satisface.
+	%A, %simplemente invocamos A para ver si se satisface.
+	% ya no es necesario invocar para ver si se satisface, dado que en caso de que no se satisfaga C será igual a 0.
 	
+	% writeln("Paso la primera."),
+	%solamente continuamos si el nodo padre no fue afectado por cuts
+	datos(nodosAfectadosPorCut(NodosAfectados)),
+	not(member(nodo(IDPadre, IDAbuelo, FotPadre, [A | ConjuncionesRestantes]), NodosAfectados)),
+	
+	% Esto después resolverlo con un predicado aparte y usando cuts.
+	(
+		A = !,
+		resolverCut(nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes])),
+		
+		write(A),
+		write(" es un cut (!), por ello podamos las ramas que correspondan."),
+		nl
+	;
+		A \= !, % necesitamos que nunca falle.
+		
+		write(A),
+		write(" NO es un cut (!)."),
+		nl
+	),
 	agregarNodo(ConjuncionesRestantes, IDPadre, nodo(ID, _, _, _)),
 	
 	buscarRamaLibre(Rama, IDPrimeraRama),
 	cambiarHijoRama(Rama, ID),
 	aumentarFotogramaActual,
 	
-    write(A),
-    write(" se cumple, pero es built-in, por ello no accedemos."),
-    nl.
+	write(A),
+	write(" se cumple, pero es built-in, por ello no accedemos."),
+	nl.
 
 % En caso de que A esté definida por el usuario y no se satisfaga entonces backtracking.
 solve(A, nodo(IDPadre, _, _, _)):-
@@ -260,7 +361,7 @@ crearSLD(A, Lista):-
 	conjuncionesALista(A, ConjuncionesDeA, Rotulo),
 	assertz(arbol(nodo(0, -1, 0, Rotulo))), % Agregamos la raiz del árbol en el fotograma 0.
 	solve(ConjuncionesDeA, nodo(0, -1, 0, Rotulo)),
-	findall(Nodo, (arbol(Nodo), writeln(Nodo)), Lista).
+	findall(ElementoArbol, (arbol(ElementoArbol), writeln(ElementoArbol)), Lista).
 
 
 conjuncionesALista(A, A, Lista):-
@@ -284,7 +385,8 @@ conjuncionesALista((X, Xs), [X | Lista]):-
 % getMaxID(-MaxID)	
 getMaxID(MaxID):-
 	arbol(nodo(MaxID, _, _, _)),
-	esMayor(nodo(MaxID, _, _, _)).
+	esMayor(nodo(MaxID, _, _, _)),
+	!.
 	
 esMayor(nodo(ID, _, _, _)):-
 	forall( (arbol(nodo(IDaux, _, _, _)), ID \= IDaux), IDaux < ID). %Las IDs son únicas.
@@ -295,8 +397,10 @@ eliminarArbol:-
 	retract(datos(fotogramaActual(_))),
 	retract(datos(ultimaID_nodo(_))),
 	retract(datos(ultimaID_rama(_))),
+	retract(datos(nodosAfectadosPorCut(_))),
 	
 	assertz(datos(fotogramaActual(1))),
 	assertz(datos(ultimaID_nodo(0))),
-	assertz(datos(ultimaID_rama(0))).
+	assertz(datos(ultimaID_rama(0))),
+	assertz(datos(nodosAfectadosPorCut([]))).
 	
