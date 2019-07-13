@@ -18,7 +18,7 @@ p(X):-
 	q(X).
 	
 p(X):-
-	not(X > 0),
+	\+(X > 0),
 	r(X).
 
 p(X). %Alternativa que siempre se cumple
@@ -193,15 +193,15 @@ agregarRama(NodoP, NodoH, rama(IDnew, Fot, NodoP, NodoH, -1)):-
 agregarRamas(Cant, NodoP):-
 	forall( between(1, Cant, _), agregarRama(NodoP, -1, _)).
 
-% Si es la primera rama agregada entonces en ID se devuelve un ID que servirá para mantener la rama asociada a un repeat en particular.
-% Si ya había ramas agregadas con ese ID entonces la eliminamos y agregamos otra rama, manteniendo el ID.
-% El ID de un repeat, será el ID de la primera rama agregada por ese repeat.
-agregarRamaRepeat(NodoP, NodoH, IDRepeat):-
-	not(datos(ultimaRamaRepeat(IDRepeat, _))),
-	!,
+
+% Se crea una primera rama de un repeat y con ello se utiliza esa ID de la rama como ID del repeat.
+% crearRamaRepeat(+NodoP, +NodoH, -IDRepeat)
+crearRamaRepeat(NodoP, NodoH, IDRepeat):-
 	agregarRama(NodoP, NodoH, rama(IDRepeat, _, _, _, _)),
 	assertz(datos(ultimaRamaRepeat(IDRepeat, IDRepeat))). % guardamos el ID de la ultima rama guardada, que en este caso como es la primera será el IDRepeat
-	
+
+% A partir de un ID de un repeat se agrega una rama en este repeat.
+% crearRamaRepeat(+NodoP, +NodoH, +IDRepeat)
 agregarRamaRepeat(NodoP, NodoH, IDRepeat):-
 	retract(datos(ultimaRamaRepeat(IDRepeat, _))),
 	agregarRama(NodoP, NodoH, rama(IDUltimaRama, _, _, _, _)),
@@ -246,7 +246,7 @@ hayCutEnLista([X | Xs]):-
 	
 
 resolverCut(nodo(_, _, _, Rotulo)):-
-	not(hayCutEnLista(Rotulo)),
+	\+(hayCutEnLista(Rotulo)),
 	!.
 	
 resolverCut(nodo(_, IDPadre, _, _)):-
@@ -372,8 +372,8 @@ solve(A, nodo(IDPadre, IDAbuelo, FotPadre, [A | ConjuncionesRestantes])):-
 
     % A \= true,
     % A \= (_, _),
-	% Verificamos que el predicado no sea uno provisto por el sistema (built_in), en caso de serlo es privado y no podemos acceder a su cuerpo
-	not(predicate_property(A, built_in)),
+	% Verificamos que el predicado no sea uno provisto por el sistema (nodebug), en caso de serlo es privado y no podemos acceder a su cuerpo
+	\+(predicate_property(A, nodebug)),
 	
 	% Arriba de conjuncionesALista/3 y clause/2 tenemos que agregar las ramas, una para cada posible solución.
 	% Para ello utilizamos: aggregate_all(count, (clause(A, BP), conjuncionesALista(BP, _, _)), C).
@@ -462,7 +462,7 @@ solve(A, nodo(IDPadre, IDAbuelo, FotPadre, [A | ConjuncionesRestantes])):-
 % Además A tiene al menos una solución.
 solve(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes])):-
 	% A \= (_, _),
-	predicate_property(A, built_in),
+	predicate_property(A, nodebug),
 	
 	(
 		A \= repeat,
@@ -484,7 +484,7 @@ solve(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes])):-
 		buscarRamaLibre(RamaLibre, IDPrimeraRama, IDUltimaRama)
 	;
 		A = repeat,
-		agregarRamaRepeat(IDPadre, -1, IDRepeat),
+		crearRamaRepeat(IDPadre, -1, IDRepeat),
 		!,
 		repeat,
 		buscarRamaRepeat(IDRepeat, RamaLibre),
@@ -525,8 +525,8 @@ solve(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes])):-
 % En caso de que A esté definida por el usuario y no se satisfaga entonces backtracking.
 solve(A, nodo(IDPadre, _, _, _)):-
 	% A \= (_, _),
-	not(predicate_property(A, built_in)),
-	not(clause(A, _)), % si A no se puede satisfacer con nada entonces falla.
+	\+(predicate_property(A, nodebug)),
+	\+(clause(A, _)), % si A no se puede satisfacer con nada entonces falla.
 	!, % por cuestiones de eficiencia.
 	
 	agregarNodo([fail], IDPadre, nodo(ID, _, _, _)),
@@ -542,8 +542,8 @@ solve(A, nodo(IDPadre, _, _, _)):-
 % En caso de que A sea provista por el sistema (built-in) y no se satisfaga entonces backtracking.
 solve(A, nodo(IDPadre, _, _, _)):-
 	% A \= (_, _),
-	% predicate_property(A, built_in),
-	% not(A),
+	% predicate_property(A, nodebug),
+	% \+(A),
 	% acá la condición junto al cut no son necesarias, dado a que no hay más alternativas y las condiciones son excluyentes y extensivas (i.e.: abarcan todas las posibilidades)
 	
 	agregarNodo([fail], IDPadre, nodo(ID, _, _, _)),
@@ -608,10 +608,9 @@ esMayor(nodo(ID, _, _, _)):-
 	
 eliminarArbol:-
 	forall(arbol(P), retract(arbol(P))),
-	
-	retract(datos(fotogramaActual(_))),
-	retract(datos(ultimaID_nodo(_))),
-	retract(datos(ultimaID_rama(_))),
+	retractall(arbol(_)),
+	retractall(datos(_)),
+
 	
 	assertz(datos(fotogramaActual(1))),
 	assertz(datos(ultimaID_nodo(0))),
