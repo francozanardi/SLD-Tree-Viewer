@@ -145,6 +145,15 @@ trep2:-
 	!,
 	fail.
 
+% este programa trae problemas con los cuts, no podemos reconocer particularmente a cada uno.
+% Es decir, nuestro problema es que debemos identificar a los cuts con ID's separados.
+bug:-
+	bugAux, !.
+bug.
+
+bugAux:-
+	!, fail.
+
 % La idea es hacer un meta-intérprete capaz de realizar un árbol SLD para un programa P.
 % Se hacen uso de assertz y retract para no verse afectado por el backtracking del meta-intérprete y conservar todo nodo,
 % de esta manera podremos ver los nodos que llevaron a caminos fallidos y como fue el árbol completo.
@@ -227,30 +236,58 @@ cambiarHijoRama(rama(ID, Fot, NodoP, NodoH, Cut), NodoH_nuevo):-
 	assertz(arbol(rama(ID, Fot, NodoP, NodoH_nuevo, Cut))).
 	
 
-tieneCut(!).
+% Cuenta la cantidad de cuts en la expresión recibida.
+% Para dividir la expresión solo tiene en cuenta los predicados que el programa reconoce.
+getCantidadCuts(!, 1):- !.
+
+getCantidadCuts(F, C):-
+	(
+		F = (A , B);
+		F = (A ; B);
+		F = (A -> B);
+		F = (A | B);
+		F = (A *-> B)
+	),
+	% Solo me interesa distinguir los predicados que reconoce el programa, es decir,
+	% aquellos que son built-in y son simulados, si el programa no lo reconociera, entonces no me interesa ver los cuts que contiene.
+
+	% ejemplo: 	Si el programa no reconciece el predicado ->/2 entonces no me interesaría contar los cuts en sus parámetros.
+	%			Por lo cual, en este ejemplo, (true -> 0=0, !, fail), tendría 0 cuts.
+	% El motivo por el cual no necesario tener en cuenta esos cuts, es que si el programa no simula tal predicado, entonces,
+	% el cut analizado nunca podría ser origen de este predicado, ya que el programa tomaría (true -> 0=0, !, fail) como nodebug
+	% y lo analizaría completamente, sin simular su árbol. Por ello mismo su cut nunca sería tenido en cuenta en nuestro árbol.
 	
-tieneCut((A; B)):-
-	tieneCut(A);
-	tieneCut(B).
+	!,
+	getCantidadCuts(A, CA),
+	getCantidadCuts(B, CB),
+	C is CA+CB.
+	
+getCantidadCuts(_, 0).
 
-tieneCut((A, B)):-
-	tieneCut(A);
-	tieneCut(B).
 
-hayCutEnLista([X | Xs]):-
-	tieneCut(X),
+contarCuts([], 0):- !.
+
+contarCuts([X | Xs], C):-
+	getCantidadCuts(X, CX),
+	CX > 0,
+	!,
+	contarCuts(Xs, Caux),
+	C is Caux+CX.
+
+contarCuts([X | Xs], C):-
+	contarCuts(Xs, C).
+
+resolverCut(nodo(ID, IDPadre, Fot, Rotulo)):-
+	contarCuts(Rotulo, CantCuts),
+	resolverCut(nodo(ID, IDPadre, Fot, Rotulo), CantCuts).
+
+resolverCut(nodo(_, _, _, Rotulo), C):-
+	contarCuts(Rotulo, CantCuts),
+	CantCuts < C,
 	!.
-
-hayCutEnLista([X | Xs]):-
-	hayCutEnLista(Xs).
 	
-
-resolverCut(nodo(_, _, _, Rotulo)):-
-	\+(hayCutEnLista(Rotulo)),
-	!.
-	
-resolverCut(nodo(_, IDPadre, _, _)):-
-	arbol(nodo(IDPadre, IDAbuelo, FotPadre, RotuloPadre)),
+resolverCut(nodo(_, IDPadre, _, _), C):-
+	arbol(nodo(IDPadre, IDAbuelo, FotPadre, RotuloPadre)), % obtenemos el padre del nodo.
 	
 	forall(	
 				arbol(rama(RamaID, RamaFot, IDPadre, -1, -1)), 
@@ -261,7 +298,7 @@ resolverCut(nodo(_, IDPadre, _, _)):-
 				)
 			),
 			
-	resolverCut(nodo(IDPadre, IDAbuelo, FotPadre, RotuloPadre)).
+	resolverCut(nodo(IDPadre, IDAbuelo, FotPadre, RotuloPadre), C).
 
 % Resuelve sentencia If - then - else ( IF -> THEN ; ELSE) utilizando la definición de swipl.
 % De esta manera se hace visible su desarrollo en el árbol.
