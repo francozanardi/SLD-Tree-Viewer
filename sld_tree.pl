@@ -1,8 +1,6 @@
 % Falta analizar el tema del occurs_check y de las sustituciones.
 % Una posibilidad para el tema de las sustituciones es manejarlas vía java.
 
-% RESOLVER LOS PROBLEMAS CON EL ;
-% PODEMOS OPTAR POR MIRAR LA DEFINICIÓN EN EL LIBRO DE SWIPL Y DE AHÍ TOMAR UNA IDEA.
 
 :- use_module(library(aggregate)).
 :- dynamic datos/1.
@@ -94,16 +92,58 @@ testIF(X):-
 	writeln("entrada."),
 	(
 		(X = 0) ->
-			writeln("IF")
+			writeln("IF"),
+			X = 0
 		;
 			writeln("Else")
 	),
 	writeln("salida.").
+	
 
+t1:-
+	(X = 0 ->  writeln("IF"), X = 1);
+	writeln("salida.").
+
+f(1).	
+f(2).	
+
+foo :-
+    (  false
+    -> write('not gonna happen'), nl
+    ;  f(X),
+       write(X), nl
+    ).
+
+
+t2:-
+    writeln("entrada"),
+    between(1, 2, X),
+    write("X: "),write(X),nl,
+    %0 = 1,
+    
+    (false ->
+		writeln("Sentencia A")
+    ;
+		writeln("Sentencia B"),
+		X = 2
+    ),
+    
+    writeln("Sentencia compartida").
 
 x:- z, y; new.
 z:- 0=1;0=0.
 new:- 0>2;0=0,0=1,true;5+5=5+5.
+
+trep:-
+	repeat,
+	0=0.
+	
+trep2:-
+	repeat,
+	true,
+	repeat,
+	!,
+	fail.
 
 % La idea es hacer un meta-intérprete capaz de realizar un árbol SLD para un programa P.
 % Se hacen uso de assertz y retract para no verse afectado por el backtracking del meta-intérprete y conservar todo nodo,
@@ -133,6 +173,13 @@ agregarNodo(Rotulo, IDNodoP, nodo(IDnew, IDNodoP, Fot, Rotulo)):-
 	retract(datos(ultimaID_nodo(ID))),
 	assertz(datos(ultimaID_nodo(IDnew))).
 	
+
+	
+aumentarFotogramaActual:-
+	retract(datos(fotogramaActual(F))),
+	NF is F+1,
+	assertz(datos(fotogramaActual(NF))).
+	
 agregarRama(NodoP, NodoH, rama(IDnew, Fot, NodoP, NodoH, -1)):-
 	datos(fotogramaActual(Fot)),
 	datos(ultimaID_rama(ID)),
@@ -143,13 +190,27 @@ agregarRama(NodoP, NodoH, rama(IDnew, Fot, NodoP, NodoH, -1)):-
 	retract(datos(ultimaID_rama(ID))),
 	assertz(datos(ultimaID_rama(IDnew))).
 	
-aumentarFotogramaActual:-
-	retract(datos(fotogramaActual(F))),
-	NF is F+1,
-	assertz(datos(fotogramaActual(NF))).
-	
 agregarRamas(Cant, NodoP):-
 	forall( between(1, Cant, _), agregarRama(NodoP, -1, _)).
+
+% Si es la primera rama agregada entonces en ID se devuelve un ID que servirá para mantener la rama asociada a un repeat en particular.
+% Si ya había ramas agregadas con ese ID entonces la eliminamos y agregamos otra rama, manteniendo el ID.
+% El ID de un repeat, será el ID de la primera rama agregada por ese repeat.
+agregarRamaRepeat(NodoP, NodoH, IDRepeat):-
+	not(datos(ultimaRamaRepeat(IDRepeat, _))),
+	!,
+	agregarRama(NodoP, NodoH, rama(IDRepeat, _, _, _, _)),
+	assertz(datos(ultimaRamaRepeat(IDRepeat, IDRepeat))). % guardamos el ID de la ultima rama guardada, que en este caso como es la primera será el IDRepeat
+	
+agregarRamaRepeat(NodoP, NodoH, IDRepeat):-
+	retract(datos(ultimaRamaRepeat(IDRepeat, _))),
+	agregarRama(NodoP, NodoH, rama(IDUltimaRama, _, _, _, _)),
+	assertz(datos(ultimaRamaRepeat(IDRepeat, IDUltimaRama))). % mantenemos el IDRepeat, que es el ID de la primera rama que agregó ese repeat.
+	
+buscarRamaRepeat(IDRepeat, Rama):-
+	datos(ultimaRamaRepeat(IDRepeat, IDUltimaRama)),
+	arbol(Rama),
+	Rama = rama(IDUltimaRama, _, _, _, _).
 	
 buscarRamaLibre(Rama, IDMin, IDMax):-
 	arbol(Rama),
@@ -201,8 +262,49 @@ resolverCut(nodo(_, IDPadre, _, _)):-
 			),
 			
 	resolverCut(nodo(IDPadre, IDAbuelo, FotPadre, RotuloPadre)).
-	
 
+% Resuelve sentencia If - then - else ( IF -> THEN ; ELSE) utilizando la definición de swipl.
+% De esta manera se hace visible su desarrollo en el árbol.
+
+% https://www.cs.bham.ac.uk/research/projects/poplog/doc/prologhelp/conditional
+% Según esa fuente Prolog define el ; (or) de la siguiente manera:
+% 	(X -> Y); Z  :-  X, !, Y.
+% 	(X -> Y); Z  :- !, Z. % este cut es para que no se genere otra solución alternativa y se intente unificar con las dos soluciones de abajo. (X sería igual a (X' -> Y'))
+% 	X ; Y        :- X.
+%	X ; Y        :- Y.
+%	
+	
+solve((A -> B ; C), nodo(IDPadre, _, _, [(A -> B ; C) | RotuloRestante])):-
+	!,
+	agregarRama(IDPadre, -1, RamaThen),
+	agregarRama(IDPadre, -1, RamaElse),
+	
+	(
+		conjuncionesALista((A, !, B), Conjunciones),
+		append(Conjunciones, RotuloRestante, Rotulo),
+		agregarNodo(Rotulo, IDPadre, NodoAgregado),
+		NodoAgregado = nodo(ID, _, _, _),
+		cambiarHijoRama(RamaThen, ID),
+		aumentarFotogramaActual,
+		
+		solve((A, !, B), NodoAgregado)
+		
+	;
+		RamaElse = rama(IDRamaElse, _, _, _, _),
+		arbol(rama(IDRamaElse, _, _, _, -1)), % verificamos que la rama no haya sido podada.
+		
+		conjuncionesALista(C, Conjunciones), % acá sacamos el ! de (!, C) ya que no hace falta en nuestro caso (si bien prolog si lo utiliza).
+		append(Conjunciones, RotuloRestante, Rotulo),
+		agregarNodo(Rotulo, IDPadre, NodoAgregado),
+		NodoAgregado = nodo(ID, _, _, _),
+		cambiarHijoRama(RamaElse, ID), 
+		aumentarFotogramaActual,
+		
+		solve(C, NodoAgregado) % acá sacamos el ! de (!, C) ya que no hace falta en nuestro caso (si bien prolog si lo utiliza).
+	).
+
+% Resuelve sentencia ';' utilizando la definición de swipl.
+% De esta manera se hace visible su desarrollo en el árbol.
 solve((A; B), nodo(IDPadre, _, _, [(A; B) | RotuloRestante])):-
 	!,
 	agregarRama(IDPadre, -1, RamaA),
@@ -220,8 +322,8 @@ solve((A; B), nodo(IDPadre, _, _, [(A; B) | RotuloRestante])):-
 		aumentarFotogramaActual,
 		solve(A, NodoAgregado)
 	;
-		% write("RamaB: "), writeln(RamaB),
-		RamaB = rama(_, _, _, _, -1), % verificamos que la rama no haya sido podada.
+		RamaB = rama(IDRamaB, _, _, _, _),
+		arbol(rama(IDRamaB, _, _, _, -1)), % verificamos que la rama no haya sido podada.
 		
 		% Creamos un nodo con B y enviamos ese nodo como padre.
 		conjuncionesALista(B, ConjuncionesB),
@@ -232,6 +334,24 @@ solve((A; B), nodo(IDPadre, _, _, [(A; B) | RotuloRestante])):-
 		aumentarFotogramaActual,
 		solve(B, NodoAgregado)
 	).
+	
+
+solve((A | B), Nodo):-
+	!,
+	solve((A ; B), Nodo).
+
+% Resuelve sentencia If - then ( IF -> THEN) utilizando la definición de swipl.
+% De esta manera se hace visible su desarrollo en el árbol.
+solve((A -> B), nodo(IDPadre, _, _, [(A -> B) | RotuloRestante])):-
+	!,
+	conjuncionesALista((A, !, B), Conjunciones),
+	append(Conjunciones, RotuloRestante, Rotulo),
+	agregarNodo(Rotulo, IDPadre, NodoAgregado),
+	NodoAgregado = nodo(ID, _, _, _),
+	agregarRama(IDPadre, ID, _),
+	aumentarFotogramaActual,
+	
+	solve((A, !, B), NodoAgregado).
 	
 
 % En este caso tenemos una conjunción de reglas (o hechos), por lo tanto accesamos a cada uno.
@@ -344,24 +464,42 @@ solve(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes])):-
 	% A \= (_, _),
 	predicate_property(A, built_in),
 	
-
-	aggregate_all(count, A, C),
-	C > 0,
+	(
+		A \= repeat,
+		
+		aggregate_all(count, A, C), % evaluar la posibilidad de que A sea un repeat!.
+		C > 0,
+		
+		datos(ultimaID_rama(IDRamaActual)),
+		IDPrimeraRama is IDRamaActual+1, %Guardamos el ID de la primera rama colocada.
+		
+		agregarRamas(C, IDPadre),
+		
+		datos(ultimaID_rama(IDUltimaRama)), %Guardamos el ID de la última rama colocada.
+		
+		!, % Si C > 0, entonces existe algún cuerpo posible, borramos toda solución alternativa de 'solve' para mayor eficiencia.
+		A, %simplemente invocamos A para ver si se satisface.
+		
+		% buscamos la rama libre que será en la cual se agregará el nodo, si la rama fue podada entonces no es tenida en cuenta.
+		buscarRamaLibre(RamaLibre, IDPrimeraRama, IDUltimaRama)
+	;
+		A = repeat,
+		agregarRamaRepeat(IDPadre, -1, IDRepeat),
+		!,
+		repeat,
+		buscarRamaRepeat(IDRepeat, RamaLibre),
+		
+		(
+			RamaLibre = rama(_, _, _, _, -1) % verificamos que la rama libre no haya sido podada.
+		;
+			RamaLibre \= rama(_, _, _, _, -1), % verificamos que la rama libre no haya sido podada.
+			!, % en caso de que la rama haya sido podada, entonces eliminamos toda solución alternativa del repeat y forzamos un fallo
+			fail
+		),
+		
+		agregarRamaRepeat(IDPadre, -1, IDRepeat) % agregamos una rama extra si no fue podada, la cual será la del próximo backtracking.
+	),
 	
-	datos(ultimaID_rama(IDRamaActual)),
-	IDPrimeraRama is IDRamaActual+1, %Guardamos el ID de la primera rama colocada.
-	
-	agregarRamas(C, IDPadre),
-	
-	datos(ultimaID_rama(IDUltimaRama)), %Guardamos el ID de la última rama colocada.
-	
-	!, % Si C > 0, entonces existe algún cuerpo posible, borramos toda solución alternativa de 'solve' para mayor eficiencia.
-	
-	A, %simplemente invocamos A para ver si se satisface.
-
-	
-	% buscamos la rama libre que será en la cual se agregará el nodo, si la rama fue podada entonces no es tenida en cuenta.
-	buscarRamaLibre(RamaLibre, IDPrimeraRama, IDUltimaRama),
 	
 	% Esto después resolverlo con un predicado aparte y usando cuts.
 	(
@@ -374,6 +512,7 @@ solve(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes])):-
 	;
 		A \= !
 	),
+	
 	agregarNodo(ConjuncionesRestantes, IDPadre, nodo(ID, _, _, _)),
 	
 	cambiarHijoRama(RamaLibre, ID),
