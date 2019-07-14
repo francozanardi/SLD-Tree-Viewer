@@ -269,13 +269,9 @@ contarCuts([], 0):- !.
 
 contarCuts([X | Xs], C):-
 	getCantidadCuts(X, CX),
-	CX > 0,
-	!,
 	contarCuts(Xs, Caux),
 	C is Caux+CX.
 
-contarCuts([X | Xs], C):-
-	contarCuts(Xs, C).
 
 resolverCut(nodo(ID, IDPadre, Fot, Rotulo)):-
 	contarCuts(Rotulo, CantCuts),
@@ -299,6 +295,12 @@ resolverCut(nodo(_, IDPadre, _, _), C):-
 			),
 			
 	resolverCut(nodo(IDPadre, IDAbuelo, FotPadre, RotuloPadre), C).
+	
+evaluarCutEnA(!, Nodo):-
+	!,
+	resolverCut(Nodo).
+
+evaluarCutEnA(_, _).
 
 % Resuelve sentencia If - then - else ( IF -> THEN ; ELSE) utilizando la definición de swipl.
 % De esta manera se hace visible su desarrollo en el árbol.
@@ -316,6 +318,10 @@ solve((A -> B ; C), nodo(IDPadre, _, _, [(A -> B ; C) | RotuloRestante])):-
 	agregarRama(IDPadre, -1, RamaThen),
 	agregarRama(IDPadre, -1, RamaElse),
 	
+	% estas dos ramas es por la definición de ;/2.
+	agregarRama(IDPadre, -1, _), 
+	agregarRama(IDPadre, -1, _),
+	
 	(
 		conjuncionesALista((A, !, B), Conjunciones),
 		append(Conjunciones, RotuloRestante, Rotulo),
@@ -330,14 +336,15 @@ solve((A -> B ; C), nodo(IDPadre, _, _, [(A -> B ; C) | RotuloRestante])):-
 		RamaElse = rama(IDRamaElse, _, _, _, _),
 		arbol(rama(IDRamaElse, _, _, _, -1)), % verificamos que la rama no haya sido podada.
 		
-		conjuncionesALista(C, Conjunciones), % acá sacamos el ! de (!, C) ya que no hace falta en nuestro caso (si bien prolog si lo utiliza).
+		conjuncionesALista((!, C), Conjunciones),
+		% Podríamos eliminar las dos ramas agregadas y quitar el cut. Sin embargo, dejamos el ! de (!, C) ya que prolog lo utiliza.
 		append(Conjunciones, RotuloRestante, Rotulo),
 		agregarNodo(Rotulo, IDPadre, NodoAgregado),
 		NodoAgregado = nodo(ID, _, _, _),
 		cambiarHijoRama(RamaElse, ID), 
 		aumentarFotogramaActual,
 		
-		solve(C, NodoAgregado) % acá sacamos el ! de (!, C) ya que no hace falta en nuestro caso (si bien prolog si lo utiliza).
+		solve((!, C), NodoAgregado)
 	).
 
 % Resuelve sentencia ';' utilizando la definición de swipl.
@@ -402,19 +409,43 @@ solve((A, B), NodoPadre):-
 	getMaxID(UltimaID),
 	arbol(nodo(UltimaID, IDP, Fot, Conj)),
     solve(B, nodo(UltimaID, IDP, Fot, Conj)).
-
+	
+solve((\+ A), nodo(IDPadre, _, _, [(\+ A) | RotuloRestante])):-
+	!,
+	agregarRama(IDPadre, -1, RamaA),
+	agregarRama(IDPadre, -1, RamaB),
+	
+	(
+		conjuncionesALista((A, !, fail), Conjunciones),
+		append(Conjunciones, RotuloRestante, Rotulo),
+		
+		agregarNodo(Rotulo, IDPadre, NodoAgregado),
+		NodoAgregado = nodo(ID, _, _, _),
+		cambiarHijoRama(RamaA, ID),
+		
+		aumentarFotogramaActual,
+		
+		solve((A, !, fail), NodoAgregado)
+	;
+		RamaB = rama(IDRamaB, _, _, _, _),
+		arbol(rama(IDRamaB, _, _, _, -1)), % verificamos que la rama no haya sido podada.
+		
+		agregarNodo(RotuloRestante, IDPadre, NodoAgregado),
+		NodoAgregado = nodo(ID, _, _, _),
+		cambiarHijoRama(RamaB, ID),
+		
+		aumentarFotogramaActual
+	).
+	
+solve(not(A), NodoPadre):-
+	!,
+	solve((\+ A), NodoPadre).
 
 % A es UNA ÚNICA regla (o hecho) definida por el usuario donde tiene al menos una posible solución.
-solve(A, nodo(IDPadre, IDAbuelo, FotPadre, [A | ConjuncionesRestantes])):-
+solve(A, nodo(IDPadre, _, _, [A | ConjuncionesRestantes])):-
 
-    % A \= true,
-    % A \= (_, _),
 	% Verificamos que el predicado no sea uno provisto por el sistema (nodebug), en caso de serlo es privado y no podemos acceder a su cuerpo
 	\+(predicate_property(A, nodebug)),
-	
-	% Arriba de conjuncionesALista/3 y clause/2 tenemos que agregar las ramas, una para cada posible solución.
-	% Para ello utilizamos: aggregate_all(count, (clause(A, BP), conjuncionesALista(BP, _, _)), C).
-	% Luego agregamos C ramas.
 		
 	aggregate_all(count, clause(A, _), C), 
 	C > 0,
@@ -434,121 +465,88 @@ solve(A, nodo(IDPadre, IDAbuelo, FotPadre, [A | ConjuncionesRestantes])):-
 	% Si las ramas han sido podadas entonces no serán tenidas en cuenta como libres.
 	
 	(
-		% A es un hecho definido por el usuario y se satisface, por lo tanto el nuevo rótulo será el del padre sin A.
-		B = true,
+		(B = true) ->
+			% A es un hecho definido por el usuario y se satisface, por lo tanto el nuevo rótulo será el del padre sin A.
+			
+			agregarNodo(ConjuncionesRestantes, IDPadre, nodo(ID, _, _, _)),
+			% agregamos un nodo con el mismo rótulo que el nodo padre, pero sin la cabeza del hecho solucionada.
+			
+			cambiarHijoRama(RamaLibre, ID),
+			
+			write(A),
+			write(" es la cabeza de un hecho."),
+			nl,
+			aumentarFotogramaActual
+		;
+			% A es una regla definida por el usuario, donde puede que después de ella se tengan que resolver más reglas que están en conjunción.
+			% Por ello al rotulo de su padre, debe quitarse ella y reemplazarse por su cuerpo.
 		
-		agregarNodo(ConjuncionesRestantes, IDPadre, nodo(ID, _, _, _)),
-		% agregamos un nodo con el mismo rótulo que el nodo padre, pero sin la cabeza del hecho solucionada.
-		
-		cambiarHijoRama(RamaLibre, ID),
-		
-		write(A),
-		write(" es la cabeza de un hecho."),
-		nl,
-		aumentarFotogramaActual
-	;
-		% A es una regla definida por el usuario, donde puede que después de ella se tengan que resolver más reglas que están en conjunción.
-		% Por ello al rotulo de su padre, debe quitarse ella y reemplazarse por su cuerpo.
-	
-		% Solución posible al problema planteado arriba: usar un if con B = true, si es distinto hacemos esto,
-		% sino, si es igual, hacemos lo que corresponda en el caso de un hecho.
-		B \= true,
-		
-			% BR contiene conjunciones obtenidads a partir de B.
-			% BResultado tiene esas mismas conjunciones pero en una lista.
-			% Ejemplo:
-			% 			B = (a, b; c)
-			%
-			%			BR = (a, b)
-			%			BResultado = [a, b]
-			%			; (si pedimos mas soluciones)
-			%			BR = c
-			%			BResultado = [c]
-			%			(acá terminan las soluciones)
-		% conjuncionesALista(B, BR, BResultado),
-		
-		conjuncionesALista(B, BResultado),
-		
-		% Luego, acá, abajo de conjuncionesALista/3, tenemos que asociar el nodo agregado con la rama que corresponda.
-		% La rama que corresponda será aquella que tenga menor ID y como NO tenga nodo hijo asociado.
-		
-		append(BResultado, ConjuncionesRestantes, Rotulo),
-		agregarNodo(Rotulo, IDPadre, NodoAgregado),
-		% Agregamos un nodo con rótulo igual a la concatenación del cuerpo de A con el rótulo del padre de A sin A.
-		% Es decir reemplazamos A por su cuerpo.
-		
-		NodoAgregado = nodo(ID, _, _, _),
-		cambiarHijoRama(RamaLibre, ID),
-		
-		% Acá buscamos la UltimaID agregada y no hacemos IDPadre+1, esto es porque si hay backtracking porque falla alguna conjunción restante
-		% y además de eso hay otras reglas que pueden instanciarse de distinta manera, lo que implicaría que aquí podríamos tomar otro camino.
-		% Por eso mismo nosotros comenzamos nuestro camino con una ID+1 de la última ID que falló.
-		% Notar que nuestro padre será IDPadre, ya que por tomar otro camino no deberíamos cambiar de padre.
-		
-		write(A),
-		write(" es la cabeza de una regla con cuerpo "),
-		write(B),
-		nl,
-		aumentarFotogramaActual, % esto tiene que hacerse antes del solve.
-		solve(B, NodoAgregado)
+			conjuncionesALista(B, BResultado),
+			
+			append(BResultado, ConjuncionesRestantes, Rotulo),
+			agregarNodo(Rotulo, IDPadre, NodoAgregado),
+			% Agregamos un nodo con rótulo igual a la concatenación del cuerpo de A con el rótulo del padre de A sin A.
+			% Es decir reemplazamos A por su cuerpo.
+			
+			NodoAgregado = nodo(ID, _, _, _),
+			cambiarHijoRama(RamaLibre, ID),
+			
+			write(A),
+			write(" es la cabeza de una regla con cuerpo "),
+			write(B),
+			nl,
+			aumentarFotogramaActual, % esto tiene que hacerse antes del solve.
+			solve(B, NodoAgregado)
 	).
 
-
+% Caso especial en el que A es un repeat.
+solve(repeat, nodo(IDPadre, _, _, [repeat | ConjuncionesRestantes])):-
+	crearRamaRepeat(IDPadre, -1, IDRepeat),
+	!,
+	repeat,
+	buscarRamaRepeat(IDRepeat, RamaLibre),
+	
+	(
+		(RamaLibre \= rama(_, _, _, _, -1)) ->
+			!, % en caso de que la rama haya sido podada, entonces eliminamos toda solución alternativa del repeat y forzamos un fallo
+			fail
+		;
+			true
+	),
+	
+	agregarRamaRepeat(IDPadre, -1, IDRepeat), % agregamos una rama extra si no fue podada, la cual será la del próximo backtracking.
+	
+	agregarNodo(ConjuncionesRestantes, IDPadre, nodo(ID, _, _, _)),
+	
+	cambiarHijoRama(RamaLibre, ID),
+	aumentarFotogramaActual,
+	
+	write(repeat),
+	write(" es un repeat, por ello no accedemos y creamos rama alternativa."),
+	nl.
 
 % En caso de que A sea un predicado provisto por el sistema, por lo que no podemos acceder a su cuerpo. Por ello solo lo quitamos en el rótulo sin accederlo.
 % Además A tiene al menos una solución.
 solve(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes])):-
-	% A \= (_, _),
 	predicate_property(A, nodebug),
 	
-	(
-		A \= repeat,
-		
-		aggregate_all(count, A, C), % evaluar la posibilidad de que A sea un repeat!.
-		C > 0,
-		
-		datos(ultimaID_rama(IDRamaActual)),
-		IDPrimeraRama is IDRamaActual+1, %Guardamos el ID de la primera rama colocada.
-		
-		agregarRamas(C, IDPadre),
-		
-		datos(ultimaID_rama(IDUltimaRama)), %Guardamos el ID de la última rama colocada.
-		
-		!, % Si C > 0, entonces existe algún cuerpo posible, borramos toda solución alternativa de 'solve' para mayor eficiencia.
-		A, %simplemente invocamos A para ver si se satisface.
-		
-		% buscamos la rama libre que será en la cual se agregará el nodo, si la rama fue podada entonces no es tenida en cuenta.
-		buscarRamaLibre(RamaLibre, IDPrimeraRama, IDUltimaRama)
-	;
-		A = repeat,
-		crearRamaRepeat(IDPadre, -1, IDRepeat),
-		!,
-		repeat,
-		buscarRamaRepeat(IDRepeat, RamaLibre),
-		
-		(
-			RamaLibre = rama(_, _, _, _, -1) % verificamos que la rama libre no haya sido podada.
-		;
-			RamaLibre \= rama(_, _, _, _, -1), % verificamos que la rama libre no haya sido podada.
-			!, % en caso de que la rama haya sido podada, entonces eliminamos toda solución alternativa del repeat y forzamos un fallo
-			fail
-		),
-		
-		agregarRamaRepeat(IDPadre, -1, IDRepeat) % agregamos una rama extra si no fue podada, la cual será la del próximo backtracking.
-	),
+	aggregate_all(count, A, C), % evaluar la posibilidad de que A sea un repeat!.
+	C > 0,
 	
+	datos(ultimaID_rama(IDRamaActual)),
+	IDPrimeraRama is IDRamaActual+1, %Guardamos el ID de la primera rama colocada.
 	
-	% Esto después resolverlo con un predicado aparte y usando cuts.
-	(
-		A = !,
-		resolverCut(nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes])),
-		
-		write(A),
-		write(" es un cut (!), por ello podamos las ramas que correspondan."),
-		nl
-	;
-		A \= !
-	),
+	agregarRamas(C, IDPadre),
+	
+	datos(ultimaID_rama(IDUltimaRama)), %Guardamos el ID de la última rama colocada.
+	
+	!, % Si C > 0, entonces existe algún cuerpo posible, borramos toda solución alternativa de 'solve' para mayor eficiencia.
+	A, %simplemente invocamos A para ver si se satisface.
+	
+	% buscamos la rama libre que será en la cual se agregará el nodo, si la rama fue podada entonces no es tenida en cuenta.
+	buscarRamaLibre(RamaLibre, IDPrimeraRama, IDUltimaRama),
+
+	evaluarCutEnA(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes])),
 	
 	agregarNodo(ConjuncionesRestantes, IDPadre, nodo(ID, _, _, _)),
 	
@@ -561,7 +559,6 @@ solve(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes])):-
 
 % En caso de que A esté definida por el usuario y no se satisfaga entonces backtracking.
 solve(A, nodo(IDPadre, _, _, _)):-
-	% A \= (_, _),
 	\+(predicate_property(A, nodebug)),
 	\+(clause(A, _)), % si A no se puede satisfacer con nada entonces falla.
 	!, % por cuestiones de eficiencia.
