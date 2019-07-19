@@ -9,10 +9,14 @@
 
 	<context:component-scan
 		base-package="com.gmail.francozanardi97.app.controller"></context:component-scan>
+		<!-- Acá lo que decimos es donde van a estar los beans para que spring busque, en nuestro caso solo ponemos los controladores
+		Spring buscará en esa dirección todo paquete descendiente de este, si queremos agregar otro tipos de beans como @Component
+		Deberíamos acá repensar esto y poner un paquete padre que ámbos beans tengan en común -->
 	<mvc:annotation-driven />
-	
-	<mvc:resources location="/resources/" mapping="/resources/**"></mvc:resources>
-	
+
+	<mvc:resources location="/resources/"
+		mapping="/resources/**"></mvc:resources>
+
 	<bean id="viewResolver"
 		class="org.springframework.web.servlet.view.InternalResourceViewResolver">
 		<property name="prefix">
@@ -23,5 +27,11 @@
 		</property>
 
 	</bean>
-	
+
+	<bean id="messageSource"
+		class="org.springframework.context.support.ResourceBundleMessageSource">
+		<property name="basename" value="mensajes/mensajesWeb" />
+	</bean>
+
+
 </beans>

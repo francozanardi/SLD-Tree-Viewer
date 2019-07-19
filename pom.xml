@@ -18,6 +18,20 @@
 			<artifactId>jpl</artifactId>
 			<version>7.4.0</version>
 		</dependency>
+		
+		<!-- https://mvnrepository.com/artifact/org.apache.xmlgraphics/batik-svg-dom -->
+		<dependency>
+			<groupId>org.apache.xmlgraphics</groupId>
+			<artifactId>batik-svg-dom</artifactId>
+			<version>1.7</version>
+		</dependency>
+		
+		<!-- https://mvnrepository.com/artifact/org.apache.xmlgraphics/batik-svggen -->
+		<dependency>
+		    <groupId>org.apache.xmlgraphics</groupId>
+		    <artifactId>batik-svggen</artifactId>
+		    <version>1.7</version>
+		</dependency>
 
 	</dependencies>
 	

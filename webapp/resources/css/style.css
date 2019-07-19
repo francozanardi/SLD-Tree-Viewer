@@ -3,3 +3,17 @@
 textarea {
     resize: none;
 }
+
+.scroll-horizontal {
+    overflow-x: auto;
+    width: 200px;
+}
+
+.scroll-vertical {
+    overflow-y: auto;
+    height: 200px;
+}
+
+.errorCode {
+	color: red;
+}
