@@ -39,6 +39,8 @@ CodeMirror.defineSimpleMode("prolog", {
 	
 	//parámetros en la definición de un predicado o parámetros en el llamado a un builtin desde fuera del cuerpo de un predicado.
 	parametros: [
+		{regex: /\%.*$/, token: "comment"},
+	    {regex: /\/\*/, token: "comment", push: "comment"}, 
 	    {regex: /\\"/, token: null},
 	    {regex: /"/, token: "string", push: "string1"},
 	    {regex: /\\'/, token: null},
