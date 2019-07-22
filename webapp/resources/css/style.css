@@ -1,19 +1,12 @@
 @charset "ISO-8859-1";
 
-textarea {
-    resize: none;
-}
-
-.scroll-horizontal {
-    overflow-x: auto;
-    width: 200px;
-}
-
-.scroll-vertical {
-    overflow-y: auto;
-    height: 200px;
+.CodeMirror {
+	border: 1px solid #aaa;
+	height: 400px;
+	margin-bottom: 10px;
 }
 
 .errorCode {
+	display: block;
 	color: red;
 }
