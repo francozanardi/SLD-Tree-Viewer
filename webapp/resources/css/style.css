@@ -1,12 +1,23 @@
 @charset "ISO-8859-1";
 
+html, body {
+  height: 85%;
+  margin: 0;
+}
+
 .CodeMirror {
 	border: 1px solid #aaa;
-	height: 400px;
+	height: 100%;
 	margin-bottom: 10px;
 }
 
 .errorCode {
 	display: block;
 	color: red;
+	margin-bottom: 10px;
+	margin-top: -8px;
 }
+
+/* #loadOverlay {
+	display: none;
+} */
