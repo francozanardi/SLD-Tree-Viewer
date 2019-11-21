@@ -1,164 +1,15 @@
-% Falta analizar el tema del occurs_check y de las sustituciones.
+﻿% Falta analizar el tema del occurs_check y de las sustituciones.
 % Una posibilidad para el tema de las sustituciones es manejarlas vía java.
-
 
 :- use_module(library(aggregate)).
 :- dynamic datos/1.
 
-a:- b, d.
-a:- c, b.
-d:- c, e.
-%e:- fail. para hacerlo funcionar tengo que en la consola hacer assertz(e) y después retract(e).
-c.
-b.
-
-
-p(X):-
-	X > 0,
-	q(X).
-	
-p(X):-
-	\+(X > 0),
-	r(X).
-
-p(X). %Alternativa que siempre se cumple
-	
-q(X):-
-	0 = 0,
-	true,
-	0 = 1.
-	
-q(X).
-	
-r(X):-
-	Lista = [X],
-	length(Lista, R),
-	append(Lista, Lista, NL),
-	length(NL, R2).
-	
-
-pertenece(X, [X | Xs]):-
-	!.
-
-pertenece(X, [A | Xs]):-
-	pertenece(X, Xs).
-
-
-a(X):-
-	X > 0,
-	b(X),
-	!,
-	X = 2.
-
-a(_).
-
-b(1).
-b(2).
-
-test :-
-    writeln("entrada."),
-    between(1, 2, X),
-    write("X: "),write(X),nl,
-    %0 = 1,
-    
-    (
-		writeln("Sentencia A."),
-		X = 1,
-		!,
-		0 = 1
-    ;
-		writeln("Sentencia B."),
-		X = 2
-    ),
-    
-    writeln(X),
-    writeln("Sentencia compartida.").
-
-
-
-testReducido :-
-    between(1, 2, X),    
-    (
-		X = 1,
-		!,
-		0 = 1
-    ;
-		X = 2
-    ),
-    
-    writeln(X).
-	
-testIF(X):-
-	writeln("entrada."),
-	(
-		(X = 0) ->
-			writeln("IF"),
-			X = 0
-		;
-			writeln("Else")
-	),
-	writeln("salida.").
-	
-
-t1:-
-	(X = 0 ->  writeln("IF"), X = 1);
-	writeln("salida.").
-
-f(1).	
-f(2).	
-
-foo :-
-    (  false
-    -> write('not gonna happen'), nl
-    ;  f(X),
-       write(X), nl
-    ).
-
-
-t2:-
-    writeln("entrada"),
-    between(1, 2, X),
-    write("X: "),write(X),nl,
-    %0 = 1,
-    
-    (false ->
-		writeln("Sentencia A")
-    ;
-		writeln("Sentencia B"),
-		X = 2
-    ),
-    
-    writeln("Sentencia compartida").
-
-x:- z, y; new.
-z:- 0=1;0=0.
-new:- 0>2;0=0,0=1,true;5+5=5+5.
-
-trep:-
-	repeat,
-	0=0.
-	
-trep2:-
-	repeat,
-	true,
-	repeat,
-	!,
-	fail.
-
-% este programa trae problemas con los cuts, no podemos reconocer particularmente a cada uno.
-% Es decir, nuestro problema es que debemos identificar a los cuts con ID's separados.
-bug:-
-	bugAux, !.
-bug.
-
-bugAux:-
-	!, fail.
 
 % La idea es hacer un meta-intérprete capaz de realizar un árbol SLD para un programa P.
 % Se hacen uso de assertz y retract para no verse afectado por el backtracking del meta-intérprete y conservar todo nodo,
 % de esta manera podremos ver los nodos que llevaron a caminos fallidos y como fue el árbol completo.
 % Además no se acceden a predicados predefinidos por el sistema (built-in) y solo se evalúa la veracidad de estos.
-% crearSLD/2 es el predicado encargado de crear el árbol para una consulta ingreada en su primer argumento.
+% crearSLD/3 es el predicado encargado de crear el árbol para una consulta ingreada en su primer argumento.
 
 % Nueva implementación.
 % arbol(rama(ID, fotogramaAparicion, IDNodoP, IDNodoH, FotogramaCut)) % Si IDNodoH = -1, entonces éste aún no se conoce. Si FotogramaCut = -1 entonces no hay cut.
@@ -313,7 +164,7 @@ evaluarCutEnA(_, _).
 %	X ; Y        :- Y.
 %	
 	
-solve((A -> B ; C), nodo(IDPadre, _, _, [(A -> B ; C) | RotuloRestante])):-
+solve((A -> B ; C), nodo(IDPadre, _, _, [(A -> B ; C) | RotuloRestante]), ModuleName):-
 	!,
 	agregarRama(IDPadre, -1, RamaThen),
 	agregarRama(IDPadre, -1, RamaElse),
@@ -330,7 +181,7 @@ solve((A -> B ; C), nodo(IDPadre, _, _, [(A -> B ; C) | RotuloRestante])):-
 		cambiarHijoRama(RamaThen, ID),
 		aumentarFotogramaActual,
 		
-		solve((A, !, B), NodoAgregado)
+		solve((A, !, B), NodoAgregado, ModuleName)
 		
 	;
 		RamaElse = rama(IDRamaElse, _, _, _, _),
@@ -344,12 +195,12 @@ solve((A -> B ; C), nodo(IDPadre, _, _, [(A -> B ; C) | RotuloRestante])):-
 		cambiarHijoRama(RamaElse, ID), 
 		aumentarFotogramaActual,
 		
-		solve((!, C), NodoAgregado)
+		solve((!, C), NodoAgregado, ModuleName)
 	).
 
 % Resuelve sentencia ';' utilizando la definición de swipl.
 % De esta manera se hace visible su desarrollo en el árbol.
-solve((A; B), nodo(IDPadre, _, _, [(A; B) | RotuloRestante])):-
+solve((A; B), nodo(IDPadre, _, _, [(A; B) | RotuloRestante]), ModuleName):-
 	!,
 	agregarRama(IDPadre, -1, RamaA),
 	agregarRama(IDPadre, -1, RamaB),
@@ -364,7 +215,7 @@ solve((A; B), nodo(IDPadre, _, _, [(A; B) | RotuloRestante])):-
 		NodoAgregado = nodo(ID, _, _, _),
 		cambiarHijoRama(RamaA, ID),
 		aumentarFotogramaActual,
-		solve(A, NodoAgregado)
+		solve(A, NodoAgregado, ModuleName)
 	;
 		RamaB = rama(IDRamaB, _, _, _, _),
 		arbol(rama(IDRamaB, _, _, _, -1)), % verificamos que la rama no haya sido podada.
@@ -376,17 +227,17 @@ solve((A; B), nodo(IDPadre, _, _, [(A; B) | RotuloRestante])):-
 		NodoAgregado = nodo(ID, _, _, _),
 		cambiarHijoRama(RamaB, ID),
 		aumentarFotogramaActual,
-		solve(B, NodoAgregado)
+		solve(B, NodoAgregado, ModuleName)
 	).
 	
 
-solve((A | B), Nodo):-
+solve((A | B), Nodo, ModuleName):-
 	!,
-	solve((A ; B), Nodo).
+	solve((A ; B), Nodo, ModuleName).
 
 % Resuelve sentencia If - then ( IF -> THEN) utilizando la definición de swipl.
 % De esta manera se hace visible su desarrollo en el árbol.
-solve((A -> B), nodo(IDPadre, _, _, [(A -> B) | RotuloRestante])):-
+solve((A -> B), nodo(IDPadre, _, _, [(A -> B) | RotuloRestante]), ModuleName):-
 	!,
 	conjuncionesALista((A, !, B), Conjunciones),
 	append(Conjunciones, RotuloRestante, Rotulo),
@@ -395,22 +246,22 @@ solve((A -> B), nodo(IDPadre, _, _, [(A -> B) | RotuloRestante])):-
 	agregarRama(IDPadre, ID, _),
 	aumentarFotogramaActual,
 	
-	solve((A, !, B), NodoAgregado).
+	solve((A, !, B), NodoAgregado, ModuleName).
 	
 
 % En este caso tenemos una conjunción de reglas (o hechos), por lo tanto accesamos a cada uno.
-solve((A, B), NodoPadre):-
+solve((A, B), NodoPadre, ModuleName):-
 	!,
-    solve(A, NodoPadre),
+    solve(A, NodoPadre, ModuleName),
 	
 	% Aquí tomamos el nodo con mayor ID ya que, A podría haber sido una regla y tomar muchos nodos para solucionarse.
 	% Si se está aquí entonces A se resolvió, y el nodo con ID mayor es quien lo resolvió, entonces este nodo será el padre 
 	% de las conjunciones restantes.
 	getMaxID(UltimaID),
 	arbol(nodo(UltimaID, IDP, Fot, Conj)),
-    solve(B, nodo(UltimaID, IDP, Fot, Conj)).
+    solve(B, nodo(UltimaID, IDP, Fot, Conj), ModuleName).
 	
-solve((\+ A), nodo(IDPadre, _, _, [(\+ A) | RotuloRestante])):-
+solve((\+ A), nodo(IDPadre, _, _, [(\+ A) | RotuloRestante]), ModuleName):-
 	!,
 	agregarRama(IDPadre, -1, RamaA),
 	agregarRama(IDPadre, -1, RamaB),
@@ -425,7 +276,7 @@ solve((\+ A), nodo(IDPadre, _, _, [(\+ A) | RotuloRestante])):-
 		
 		aumentarFotogramaActual,
 		
-		solve((A, !, fail), NodoAgregado)
+		solve((A, !, fail), NodoAgregado, ModuleName)
 	;
 		RamaB = rama(IDRamaB, _, _, _, _),
 		arbol(rama(IDRamaB, _, _, _, -1)), % verificamos que la rama no haya sido podada.
@@ -437,17 +288,17 @@ solve((\+ A), nodo(IDPadre, _, _, [(\+ A) | RotuloRestante])):-
 		aumentarFotogramaActual
 	).
 	
-solve(not(A), NodoPadre):-
+solve(not(A), NodoPadre, ModuleName):-
 	!,
-	solve((\+ A), NodoPadre).
+	solve((\+ A), NodoPadre, ModuleName).
 
 % A es UNA ÚNICA regla (o hecho) definida por el usuario donde tiene al menos una posible solución.
-solve(A, nodo(IDPadre, _, _, [A | ConjuncionesRestantes])):-
+solve(A, nodo(IDPadre, _, _, [A | ConjuncionesRestantes]), ModuleName):-
 
 	% Verificamos que el predicado no sea uno provisto por el sistema (nodebug), en caso de serlo es privado y no podemos acceder a su cuerpo
-	\+(predicate_property(A, nodebug)),
+	\+(predicate_property(ModuleName:A, nodebug)),
 		
-	aggregate_all(count, clause(A, _), C), 
+	aggregate_all(count, clause(ModuleName:A, _), C), 
 	C > 0,
 	
 	datos(ultimaID_rama(IDRamaActual)),
@@ -458,7 +309,7 @@ solve(A, nodo(IDPadre, _, _, [A | ConjuncionesRestantes])):-
 	datos(ultimaID_rama(IDUltimaRama)), %Guardamos el ID de la última rama colocada.
 	
 	!, % Si C > 0, entonces existe algún cuerpo posible, borramos toda solución alternativa de 'solve' para mayor eficiencia.
-    clause(A, B),
+    clause(ModuleName:A, B),
 	
 	buscarRamaLibre(RamaLibre, IDPrimeraRama, IDUltimaRama), 
 	% buscamos la rama libre que ocupará el nuevo nodo.
@@ -496,11 +347,11 @@ solve(A, nodo(IDPadre, _, _, [A | ConjuncionesRestantes])):-
 			write(B),
 			nl,
 			aumentarFotogramaActual, % esto tiene que hacerse antes del solve.
-			solve(B, NodoAgregado)
+			solve(B, NodoAgregado, ModuleName)
 	).
 
 % Caso especial en el que A es un repeat.
-solve(repeat, nodo(IDPadre, _, _, [repeat | ConjuncionesRestantes])):-
+solve(repeat, nodo(IDPadre, _, _, [repeat | ConjuncionesRestantes]), _):-
 	crearRamaRepeat(IDPadre, -1, IDRepeat),
 	!,
 	repeat,
@@ -527,10 +378,10 @@ solve(repeat, nodo(IDPadre, _, _, [repeat | ConjuncionesRestantes])):-
 
 % En caso de que A sea un predicado provisto por el sistema, por lo que no podemos acceder a su cuerpo. Por ello solo lo quitamos en el rótulo sin accederlo.
 % Además A tiene al menos una solución.
-solve(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes])):-
-	predicate_property(A, nodebug),
+solve(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes]), ModuleName):-
+	predicate_property(ModuleName:A, nodebug),
 	
-	aggregate_all(count, A, C), % evaluar la posibilidad de que A sea un repeat!.
+	aggregate_all(count, ModuleName:A, C), % evaluar la posibilidad de que A sea un repeat!.
 	C > 0,
 	
 	datos(ultimaID_rama(IDRamaActual)),
@@ -541,7 +392,7 @@ solve(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes])):-
 	datos(ultimaID_rama(IDUltimaRama)), %Guardamos el ID de la última rama colocada.
 	
 	!, % Si C > 0, entonces existe algún cuerpo posible, borramos toda solución alternativa de 'solve' para mayor eficiencia.
-	A, %simplemente invocamos A para ver si se satisface.
+	ModuleName:A, %simplemente invocamos A para ver si se satisface.
 	
 	% buscamos la rama libre que será en la cual se agregará el nodo, si la rama fue podada entonces no es tenida en cuenta.
 	buscarRamaLibre(RamaLibre, IDPrimeraRama, IDUltimaRama),
@@ -558,9 +409,9 @@ solve(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes])):-
 	nl.
 
 % En caso de que A esté definida por el usuario y no se satisfaga entonces backtracking.
-solve(A, nodo(IDPadre, _, _, _)):-
-	\+(predicate_property(A, nodebug)),
-	\+(clause(A, _)), % si A no se puede satisfacer con nada entonces falla.
+solve(A, nodo(IDPadre, _, _, _), ModuleName):-
+	\+(predicate_property(ModuleName:A, nodebug)),
+	\+(clause(ModuleName:A, _)), % si A no se puede satisfacer con nada entonces falla.
 	!, % por cuestiones de eficiencia.
 	
 	agregarNodo([fail], IDPadre, nodo(ID, _, _, _)),
@@ -574,7 +425,7 @@ solve(A, nodo(IDPadre, _, _, _)):-
     fail.
 	
 % En caso de que A sea provista por el sistema (built-in) y no se satisfaga entonces backtracking.
-solve(A, nodo(IDPadre, _, _, _)):-
+solve(A, nodo(IDPadre, _, _, _), _):-
 	% A \= (_, _),
 	% predicate_property(A, nodebug),
 	% \+(A),
@@ -590,14 +441,18 @@ solve(A, nodo(IDPadre, _, _, _)):-
     nl,
     fail.
 
-
-crearSLD(A, Lista):-
+% Path debe ser el path en donde se encuentra ModuleName
+% Si el archivo a cargar se encuentra en la misma ubicación donde se encuentra el programa entonces
+% ModuleName será igual a nombreArchivo y Path igual a nombreArchivo.pl.
+% En caso querer utilizar la ubicación actual en la que se ejecuta el programa, y a partir de esta,
+% ubicar el archivo ModuleName, entonces Path debería ser de la siguiente forma: 'folderName/.../ModuleName.pl'.
+crearSLD(A, ModuleName, Path):-
+	consult(Path), 
+	
 	conjuncionesALista(A, Rotulo),
 	assertz(arbol(nodo(0, -1, 0, Rotulo))), % Agregamos la raiz del árbol en el fotograma 0.
-	solve(A, nodo(0, -1, 0, Rotulo)),
-	findall(ElementoArbol, (arbol(ElementoArbol), writeln(ElementoArbol)), Lista).
-
-
+	solve(A, nodo(0, -1, 0, Rotulo), ModuleName).
+	% findall(ElementoArbol, (arbol(ElementoArbol), writeln(ElementoArbol)), Lista).
 
 
 

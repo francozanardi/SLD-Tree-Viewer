@@ -9,9 +9,13 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.util.Map;
 
 import org.apache.batik.dom.svg.SVGDOMImplementation;
 import org.apache.batik.svggen.SVGGraphics2D;
+import org.jpl7.Atom;
+import org.jpl7.Query;
+import org.jpl7.Term;
 import org.springframework.web.context.ContextLoader;
 import org.w3c.dom.DOMImplementation;
 import org.w3c.dom.Document;
@@ -22,12 +26,65 @@ import form.ProgramaUsuario;
 
 public class TreeSLD {
 	private ProgramaUsuario programa;
+	private Query solutions_programUser;
+	private Query solutions_treeSLD;
+	private int fotogramaActual;
 	
 	public TreeSLD(ProgramaUsuario p) {
 		programa = p;
+		fotogramaActual = -1;
 	}
 	
-	public String generarSVG(String path) {
+	public void cargarSourceCode(String path) {
+		File f = new File(path);
+		String inicioFile = ":- module(sourceUser, []).\n\n";
+		try {
+			FileWriter w = new FileWriter(f);
+			System.out.println("sourceCode: " + programa.getSourceCode());
+			w.append(inicioFile + programa.getSourceCode());
+			w.flush();
+			w.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void cargarMetainterprete(String path) {
+		Query q = 
+		        new Query( 
+		            "consult", 
+		            new Term[] {new Atom(path)} 
+		        );
+		
+		q.close();
+		
+	}
+	
+	public void realizarConsulta() {
+		solutions_programUser = new Query("crearSLD(" + programa.getQueryProlog() + ").");
+	}
+	
+	public void next_solutionProgramUser() {
+		if(solutions_programUser.hasMoreSolutions()) {
+			solutions_programUser.nextSolution();
+		}
+	}
+	
+//	public void crearTreeSLD() {
+//		solutions_treeSLD = new Query("arbol(E).");
+//	}
+	
+	public String next_treeSLD() {
+		fotogramaActual++;
+//		agregarRamas();
+//		agregarNodos();
+		
+		return generarSVG();
+	}
+	
+	
+	
+	public String generarSVG() {
 		
 		DOMImplementation impl = SVGDOMImplementation.getDOMImplementation();
 		String svgNS = SVGDOMImplementation.SVG_NAMESPACE_URI;

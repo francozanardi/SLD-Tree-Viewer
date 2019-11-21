@@ -31,6 +31,11 @@ Además minimizar los archivos js utilizados, especialmente codemirror.js. Mirar 
 <body>
 	<div id="loadDiv" style="display: block; background-color:white; position:absolute; top:0px; left:0px; width:100%; height:100%; z-index:2000;"></div>
 	<div class="container h-100">
+		<%
+			boolean hayPrev = (Boolean)request.getAttribute("hayPrev");
+			boolean hayNext = (Boolean)request.getAttribute("hayNext");
+			String svgImage = (String)request.getAttribute("svgTreeSLD");
+		%>
 		<h1>Bienvenidos.</h1>
 		<div class="row h-100">
 			<div class="form-group col-lg-6 h-100">
@@ -135,7 +140,7 @@ Además minimizar los archivos js utilizados, especialmente codemirror.js. Mirar 
 				</form:form>	
 			</div>
 			
-			<% if(request.getAttribute("svgTreeSLD") == null){ %>
+			<% if(svgImage == null){ %>
 				<script type="text/javascript">
 					document.getElementById("createButton").style.display = "block";
 					document.getElementById("optionsButton").style.display = "block";
@@ -158,13 +163,14 @@ Además minimizar los archivos js utilizados, especialmente codemirror.js. Mirar 
 					document.getElementById("skipButton").style.display = "block";		
 				</script>
 				
-				<% if(request.getAttribute("seUsoNext") != null){ %>
+				<% if(!hayPrev) { %>
 					<script>
-						document.getElementById("prevStepButton").disabled = false;	
+						document.getElementById("prevStepButton").disabled = true;	
 					</script>
-				<% } else { %>
+				<% } %> 
+				<% if(!hayNext) { %>
 					<script>
-						document.getElementById("prevStepButton").disabled = true;
+						document.getElementById("nextStepButton").disabled = true;
 					</script>
 				<% } %>
 			<% } %>
