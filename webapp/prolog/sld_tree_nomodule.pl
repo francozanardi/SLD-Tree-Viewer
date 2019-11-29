@@ -2,8 +2,7 @@
 % Una posibilidad para el tema de las sustituciones es manejarlas vía java.
 
 :- use_module(library(aggregate)).
-:- dynamic datos/2.
-:- dynamic arbol/2.
+:- dynamic datos/1.
 
 
 % La idea es hacer un meta-intérprete capaz de realizar un árbol SLD para un programa P.
@@ -13,78 +12,75 @@
 % crearSLD/3 es el predicado encargado de crear el árbol para una consulta ingreada en su primer argumento.
 
 % Nueva implementación.
-% arbol(ModuleName, rama(ID, fotogramaAparicion, IDNodoP, IDNodoH, FotogramaCut)) % Si IDNodoH = -1, entonces éste aún no se conoce. Si FotogramaCut = -1 entonces no hay cut.
-% arbol(ModuleName, nodo(ID, IDPadre, fotogramaAparicion, rotulo))
-
-% Para distinguir un nodo (o rama) de otro se necesita el ID y el ModuleName.
+% arbol(rama(ID, fotogramaAparicion, IDNodoP, IDNodoH, FotogramaCut)) % Si IDNodoH = -1, entonces éste aún no se conoce. Si FotogramaCut = -1 entonces no hay cut.
+% arbol(nodo(ID, IDPadre, fotogramaAparicion, rotulo))
 
 % Llevamos con assertz y retract la última ID dada a un nodo y el fotograma actual.
 
 % La idea para el cut es reconocerlo y apartir de ahí buscar toda rama que se necesite modificar.
 
-
-agregarNodo(ModuleName, Rotulo, IDNodoP, nodo(IDnew, IDNodoP, Fot, Rotulo)):-
-	datos(ModuleName, fotogramaActual(Fot)),
-	datos(ModuleName, ultimaID_nodo(ID)),
+agregarNodo(Rotulo, IDNodoP, nodo(IDnew, IDNodoP, Fot, Rotulo)):-
+	datos(fotogramaActual(Fot)),
+	datos(ultimaID_nodo(ID)),
 	IDnew is ID+1,
-	assertz(arbol(ModuleName, nodo(IDnew, IDNodoP, Fot, Rotulo))), % Agregamos efectivamente el nodo.
+	assertz(arbol(nodo(IDnew, IDNodoP, Fot, Rotulo))), % Agregamos efectivamente el nodo.
 	
 	%Actualizamos los datos correspondientes.
-	retract(datos(ModuleName, ultimaID_nodo(ID))),
-	assertz(datos(ModuleName, ultimaID_nodo(IDnew))).
+	retract(datos(ultimaID_nodo(ID))),
+	assertz(datos(ultimaID_nodo(IDnew))).
 	
 
 	
-aumentarFotogramaActual(ModuleName):-
-	retract(datos(ModuleName, fotogramaActual(F))),
+aumentarFotogramaActual:-
+	retract(datos(fotogramaActual(F))),
 	NF is F+1,
-	assertz(datos(ModuleName, fotogramaActual(NF))).
+	assertz(datos(fotogramaActual(NF))).
 	
-agregarRama(ModuleName, NodoP, NodoH, rama(IDnew, Fot, NodoP, NodoH, -1)):-
-	datos(ModuleName, fotogramaActual(Fot)),
-	datos(ModuleName, ultimaID_rama(ID)),
+agregarRama(NodoP, NodoH, rama(IDnew, Fot, NodoP, NodoH, -1)):-
+	datos(fotogramaActual(Fot)),
+	datos(ultimaID_rama(ID)),
 	IDnew is ID+1,
-	assertz(arbol(ModuleName, rama(IDnew, Fot, NodoP, NodoH, -1))), % Agregamos efectivamente el nodo.
+	assertz(arbol(rama(IDnew, Fot, NodoP, NodoH, -1))), % Agregamos efectivamente el nodo.
 	
 	%Actualizamos los datos correspondientes.
-	retract(datos(ModuleName, ultimaID_rama(ID))),
-	assertz(datos(ModuleName, ultimaID_rama(IDnew))).
+	retract(datos(ultimaID_rama(ID))),
+	assertz(datos(ultimaID_rama(IDnew))).
 	
-agregarRamas(ModuleName, Cant, NodoP):-
-	forall( between(1, Cant, _), agregarRama(ModuleName, NodoP, -1, _)).
+agregarRamas(Cant, NodoP):-
+	forall( between(1, Cant, _), agregarRama(NodoP, -1, _)).
 
 
 % Se crea una primera rama de un repeat y con ello se utiliza esa ID de la rama como ID del repeat.
 % crearRamaRepeat(+NodoP, +NodoH, -IDRepeat)
-crearRamaRepeat(ModuleName, NodoP, NodoH, IDRepeat):-
-	agregarRama(ModuleName, NodoP, NodoH, rama(IDRepeat, _, _, _, _)),
-	assertz(datos(ModuleName, ultimaRamaRepeat(IDRepeat, IDRepeat))). % guardamos el ID de la ultima rama guardada, que en este caso como es la primera será el IDRepeat
+crearRamaRepeat(NodoP, NodoH, IDRepeat):-
+	agregarRama(NodoP, NodoH, rama(IDRepeat, _, _, _, _)),
+	assertz(datos(ultimaRamaRepeat(IDRepeat, IDRepeat))). % guardamos el ID de la ultima rama guardada, que en este caso como es la primera será el IDRepeat
 
 % A partir de un ID de un repeat se agrega una rama en este repeat.
 % crearRamaRepeat(+NodoP, +NodoH, +IDRepeat)
-agregarRamaRepeat(ModuleName, NodoP, NodoH, IDRepeat):-
-	retract(datos(ModuleName, ultimaRamaRepeat(IDRepeat, _))),
-	agregarRama(ModuleName, NodoP, NodoH, rama(IDUltimaRama, _, _, _, _)),
-	assertz(datos(ModuleName, ultimaRamaRepeat(IDRepeat, IDUltimaRama))). % mantenemos el IDRepeat, que es el ID de la primera rama que agregó ese repeat.
+agregarRamaRepeat(NodoP, NodoH, IDRepeat):-
+	retract(datos(ultimaRamaRepeat(IDRepeat, _))),
+	agregarRama(NodoP, NodoH, rama(IDUltimaRama, _, _, _, _)),
+	assertz(datos(ultimaRamaRepeat(IDRepeat, IDUltimaRama))). % mantenemos el IDRepeat, que es el ID de la primera rama que agregó ese repeat.
 	
-buscarRamaRepeat(ModuleName, IDRepeat, Rama):-
-	datos(ModuleName, ultimaRamaRepeat(IDRepeat, IDUltimaRama)),
-	arbol(ModuleName, Rama),
+buscarRamaRepeat(IDRepeat, Rama):-
+	datos(ultimaRamaRepeat(IDRepeat, IDUltimaRama)),
+	arbol(Rama),
 	Rama = rama(IDUltimaRama, _, _, _, _).
 	
-buscarRamaLibre(ModuleName, Rama, IDMin, IDMax):-
-	arbol(ModuleName, Rama),
-	esMenorID(ModuleName, Rama, IDMin, IDMax),
+buscarRamaLibre(Rama, IDMin, IDMax):-
+	arbol(Rama),
+	esMenorID(Rama, IDMin, IDMax),
 	!.
 	
-esMenorID(ModuleName, rama(ID1, _, _, -1, -1), IDMin, IDMax):-
+esMenorID(rama(ID1, _, _, -1, -1), IDMin, IDMax):-
 	ID1 >= IDMin,
 	ID1 =< IDMax,
-	forall((arbol(ModuleName, rama(ID2, _, _, -1, -1)), ID2 \= ID1, ID2 >= IDMin, ID2 =< IDMax), ID1 < ID2).
+	forall((arbol(rama(ID2, _, _, -1, -1)), ID2 \= ID1, ID2 >= IDMin, ID2 =< IDMax), ID1 < ID2).
 	
-cambiarHijoRama(ModuleName, rama(ID, Fot, NodoP, NodoH, Cut), NodoH_nuevo):-
-	retract(arbol(ModuleName, rama(ID, Fot, NodoP, NodoH, Cut))),
-	assertz(arbol(ModuleName, rama(ID, Fot, NodoP, NodoH_nuevo, Cut))).
+cambiarHijoRama(rama(ID, Fot, NodoP, NodoH, Cut), NodoH_nuevo):-
+	retract(arbol(rama(ID, Fot, NodoP, NodoH, Cut))),
+	assertz(arbol(rama(ID, Fot, NodoP, NodoH_nuevo, Cut))).
 	
 
 % Cuenta la cantidad de cuts en la expresión recibida.
@@ -124,34 +120,34 @@ contarCuts([X | Xs], C):-
 	C is Caux+CX.
 
 
-resolverCut(ModuleName, nodo(ID, IDPadre, Fot, Rotulo)):-
+resolverCut(nodo(ID, IDPadre, Fot, Rotulo)):-
 	contarCuts(Rotulo, CantCuts),
-	resolverCut(ModuleName, nodo(ID, IDPadre, Fot, Rotulo), CantCuts).
+	resolverCut(nodo(ID, IDPadre, Fot, Rotulo), CantCuts).
 
-resolverCut(_, nodo(_, _, _, Rotulo), C):-
+resolverCut(nodo(_, _, _, Rotulo), C):-
 	contarCuts(Rotulo, CantCuts),
 	CantCuts < C,
 	!.
 	
-resolverCut(ModuleName, nodo(_, IDPadre, _, _), C):-
-	arbol(ModuleName, nodo(IDPadre, IDAbuelo, FotPadre, RotuloPadre)), % obtenemos el padre del nodo.
+resolverCut(nodo(_, IDPadre, _, _), C):-
+	arbol(nodo(IDPadre, IDAbuelo, FotPadre, RotuloPadre)), % obtenemos el padre del nodo.
 	
 	forall(	
-				arbol(ModuleName, rama(RamaID, RamaFot, IDPadre, -1, -1)), 
+				arbol(rama(RamaID, RamaFot, IDPadre, -1, -1)), 
 				(
-					retract(arbol(ModuleName, rama(RamaID, RamaFot, IDPadre, -1, -1))),
-					datos(ModuleName, fotogramaActual(FActual)),
-					assertz(arbol(ModuleName, rama(RamaID, RamaFot, IDPadre, -1, FActual)))
+					retract(arbol(rama(RamaID, RamaFot, IDPadre, -1, -1))),
+					datos(fotogramaActual(FActual)),
+					assertz(arbol(rama(RamaID, RamaFot, IDPadre, -1, FActual)))
 				)
 			),
 			
-	resolverCut(ModuleName, nodo(IDPadre, IDAbuelo, FotPadre, RotuloPadre), C).
+	resolverCut(nodo(IDPadre, IDAbuelo, FotPadre, RotuloPadre), C).
 	
-evaluarCutEnA(ModuleName, !, Nodo):-
+evaluarCutEnA(!, Nodo):-
 	!,
-	resolverCut(ModuleName, Nodo).
+	resolverCut(Nodo).
 
-evaluarCutEnA(_, _, _).
+evaluarCutEnA(_, _).
 
 % Resuelve sentencia If - then - else ( IF -> THEN ; ELSE) utilizando la definición de swipl.
 % De esta manera se hace visible su desarrollo en el árbol.
@@ -166,34 +162,34 @@ evaluarCutEnA(_, _, _).
 	
 solve((A -> B ; C), nodo(IDPadre, _, _, [(A -> B ; C) | RotuloRestante]), ModuleName):-
 	!,
-	agregarRama(ModuleName, IDPadre, -1, RamaThen),
-	agregarRama(ModuleName, IDPadre, -1, RamaElse),
+	agregarRama(IDPadre, -1, RamaThen),
+	agregarRama(IDPadre, -1, RamaElse),
 	
 	% estas dos ramas es por la definición de ;/2.
-	agregarRama(ModuleName, IDPadre, -1, _), 
-	agregarRama(ModuleName, IDPadre, -1, _),
+	agregarRama(IDPadre, -1, _), 
+	agregarRama(IDPadre, -1, _),
 	
 	(
 		conjuncionesALista((A, !, B), Conjunciones),
 		append(Conjunciones, RotuloRestante, Rotulo),
-		agregarNodo(ModuleName, Rotulo, IDPadre, NodoAgregado),
+		agregarNodo(Rotulo, IDPadre, NodoAgregado),
 		NodoAgregado = nodo(ID, _, _, _),
-		cambiarHijoRama(ModuleName, RamaThen, ID),
-		aumentarFotogramaActual(ModuleName),
+		cambiarHijoRama(RamaThen, ID),
+		aumentarFotogramaActual,
 		
 		solve((A, !, B), NodoAgregado, ModuleName)
 		
 	;
 		RamaElse = rama(IDRamaElse, _, _, _, _),
-		arbol(ModuleName, rama(IDRamaElse, _, _, _, -1)), % verificamos que la rama no haya sido podada.
+		arbol(rama(IDRamaElse, _, _, _, -1)), % verificamos que la rama no haya sido podada.
 		
 		conjuncionesALista((!, C), Conjunciones),
 		% Podríamos eliminar las dos ramas agregadas y quitar el cut. Sin embargo, dejamos el ! de (!, C) ya que prolog lo utiliza.
 		append(Conjunciones, RotuloRestante, Rotulo),
-		agregarNodo(ModuleName, Rotulo, IDPadre, NodoAgregado),
+		agregarNodo(Rotulo, IDPadre, NodoAgregado),
 		NodoAgregado = nodo(ID, _, _, _),
-		cambiarHijoRama(ModuleName, RamaElse, ID), 
-		aumentarFotogramaActual(ModuleName),
+		cambiarHijoRama(RamaElse, ID), 
+		aumentarFotogramaActual,
 		
 		solve((!, C), NodoAgregado, ModuleName)
 	).
@@ -202,8 +198,8 @@ solve((A -> B ; C), nodo(IDPadre, _, _, [(A -> B ; C) | RotuloRestante]), Module
 % De esta manera se hace visible su desarrollo en el árbol.
 solve((A; B), nodo(IDPadre, _, _, [(A; B) | RotuloRestante]), ModuleName):-
 	!,
-	agregarRama(ModuleName, IDPadre, -1, RamaA),
-	agregarRama(ModuleName, IDPadre, -1, RamaB),
+	agregarRama(IDPadre, -1, RamaA),
+	agregarRama(IDPadre, -1, RamaB),
 	
 	% Creamos DOS ramas.
 	
@@ -211,22 +207,22 @@ solve((A; B), nodo(IDPadre, _, _, [(A; B) | RotuloRestante]), ModuleName):-
 		% Creamos un nodo con A y enviamos ese nodo como padre.
 		conjuncionesALista(A, ConjuncionesA),
 		append(ConjuncionesA, RotuloRestante, Rotulo),
-		agregarNodo(ModuleName, Rotulo, IDPadre, NodoAgregado),
+		agregarNodo(Rotulo, IDPadre, NodoAgregado),
 		NodoAgregado = nodo(ID, _, _, _),
-		cambiarHijoRama(ModuleName, RamaA, ID),
-		aumentarFotogramaActual(ModuleName),
+		cambiarHijoRama(RamaA, ID),
+		aumentarFotogramaActual,
 		solve(A, NodoAgregado, ModuleName)
 	;
 		RamaB = rama(IDRamaB, _, _, _, _),
-		arbol(ModuleName, rama(IDRamaB, _, _, _, -1)), % verificamos que la rama no haya sido podada.
+		arbol(rama(IDRamaB, _, _, _, -1)), % verificamos que la rama no haya sido podada.
 		
 		% Creamos un nodo con B y enviamos ese nodo como padre.
 		conjuncionesALista(B, ConjuncionesB),
 		append(ConjuncionesB, RotuloRestante, Rotulo),
-		agregarNodo(ModuleName, Rotulo, IDPadre, NodoAgregado),
+		agregarNodo(Rotulo, IDPadre, NodoAgregado),
 		NodoAgregado = nodo(ID, _, _, _),
-		cambiarHijoRama(ModuleName, RamaB, ID),
-		aumentarFotogramaActual(ModuleName),
+		cambiarHijoRama(RamaB, ID),
+		aumentarFotogramaActual,
 		solve(B, NodoAgregado, ModuleName)
 	).
 	
@@ -241,10 +237,10 @@ solve((A -> B), nodo(IDPadre, _, _, [(A -> B) | RotuloRestante]), ModuleName):-
 	!,
 	conjuncionesALista((A, !, B), Conjunciones),
 	append(Conjunciones, RotuloRestante, Rotulo),
-	agregarNodo(ModuleName, Rotulo, IDPadre, NodoAgregado),
+	agregarNodo(Rotulo, IDPadre, NodoAgregado),
 	NodoAgregado = nodo(ID, _, _, _),
-	agregarRama(ModuleName, IDPadre, ID, _),
-	aumentarFotogramaActual(ModuleName),
+	agregarRama(IDPadre, ID, _),
+	aumentarFotogramaActual,
 	
 	solve((A, !, B), NodoAgregado, ModuleName).
 	
@@ -257,35 +253,35 @@ solve((A, B), NodoPadre, ModuleName):-
 	% Aquí tomamos el nodo con mayor ID ya que, A podría haber sido una regla y tomar muchos nodos para solucionarse.
 	% Si se está aquí entonces A se resolvió, y el nodo con ID mayor es quien lo resolvió, entonces este nodo será el padre 
 	% de las conjunciones restantes.
-	getMaxID(ModuleName, UltimaID),
-	arbol(ModuleName, nodo(UltimaID, IDP, Fot, Conj)),
+	getMaxID(UltimaID),
+	arbol(nodo(UltimaID, IDP, Fot, Conj)),
     solve(B, nodo(UltimaID, IDP, Fot, Conj), ModuleName).
 	
 solve((\+ A), nodo(IDPadre, _, _, [(\+ A) | RotuloRestante]), ModuleName):-
 	!,
-	agregarRama(ModuleName, IDPadre, -1, RamaA),
-	agregarRama(ModuleName, IDPadre, -1, RamaB),
+	agregarRama(IDPadre, -1, RamaA),
+	agregarRama(IDPadre, -1, RamaB),
 	
 	(
 		conjuncionesALista((A, !, fail), Conjunciones),
 		append(Conjunciones, RotuloRestante, Rotulo),
 		
-		agregarNodo(ModuleName, Rotulo, IDPadre, NodoAgregado),
+		agregarNodo(Rotulo, IDPadre, NodoAgregado),
 		NodoAgregado = nodo(ID, _, _, _),
-		cambiarHijoRama(ModuleName, RamaA, ID),
+		cambiarHijoRama(RamaA, ID),
 		
-		aumentarFotogramaActual(ModuleName),
+		aumentarFotogramaActual,
 		
 		solve((A, !, fail), NodoAgregado, ModuleName)
 	;
 		RamaB = rama(IDRamaB, _, _, _, _),
-		arbol(ModuleName, rama(IDRamaB, _, _, _, -1)), % verificamos que la rama no haya sido podada.
+		arbol(rama(IDRamaB, _, _, _, -1)), % verificamos que la rama no haya sido podada.
 		
-		agregarNodo(ModuleName, RotuloRestante, IDPadre, NodoAgregado),
+		agregarNodo(RotuloRestante, IDPadre, NodoAgregado),
 		NodoAgregado = nodo(ID, _, _, _),
-		cambiarHijoRama(ModuleName, RamaB, ID),
+		cambiarHijoRama(RamaB, ID),
 		
-		aumentarFotogramaActual(ModuleName)
+		aumentarFotogramaActual
 	).
 	
 solve(not(A), NodoPadre, ModuleName):-
@@ -301,17 +297,17 @@ solve(A, nodo(IDPadre, _, _, [A | ConjuncionesRestantes]), ModuleName):-
 	aggregate_all(count, clause(ModuleName:A, _), C), 
 	C > 0,
 	
-	datos(ModuleName, ultimaID_rama(IDRamaActual)),
+	datos(ultimaID_rama(IDRamaActual)),
 	IDPrimeraRama is IDRamaActual+1, %Guardamos el ID de la primera rama.
 	
-	agregarRamas(ModuleName, C, IDPadre),
+	agregarRamas(C, IDPadre),
 	
-	datos(ModuleName, ultimaID_rama(IDUltimaRama)), %Guardamos el ID de la última rama colocada.
+	datos(ultimaID_rama(IDUltimaRama)), %Guardamos el ID de la última rama colocada.
 	
 	!, % Si C > 0, entonces existe algún cuerpo posible, borramos toda solución alternativa de 'solve' para mayor eficiencia.
     clause(ModuleName:A, B),
 	
-	buscarRamaLibre(ModuleName, RamaLibre, IDPrimeraRama, IDUltimaRama), 
+	buscarRamaLibre(RamaLibre, IDPrimeraRama, IDUltimaRama), 
 	% buscamos la rama libre que ocupará el nuevo nodo.
 	% Si las ramas han sido podadas entonces no serán tenidas en cuenta como libres.
 	
@@ -319,15 +315,15 @@ solve(A, nodo(IDPadre, _, _, [A | ConjuncionesRestantes]), ModuleName):-
 		(B = true) ->
 			% A es un hecho definido por el usuario y se satisface, por lo tanto el nuevo rótulo será el del padre sin A.
 			
-			agregarNodo(ModuleName, ConjuncionesRestantes, IDPadre, nodo(ID, _, _, _)),
+			agregarNodo(ConjuncionesRestantes, IDPadre, nodo(ID, _, _, _)),
 			% agregamos un nodo con el mismo rótulo que el nodo padre, pero sin la cabeza del hecho solucionada.
 			
-			cambiarHijoRama(ModuleName, RamaLibre, ID),
+			cambiarHijoRama(RamaLibre, ID),
 			
 			write(A),
 			write(" es la cabeza de un hecho."),
 			nl,
-			aumentarFotogramaActual(ModuleName)
+			aumentarFotogramaActual
 		;
 			% A es una regla definida por el usuario, donde puede que después de ella se tengan que resolver más reglas que están en conjunción.
 			% Por ello al rotulo de su padre, debe quitarse ella y reemplazarse por su cuerpo.
@@ -335,27 +331,27 @@ solve(A, nodo(IDPadre, _, _, [A | ConjuncionesRestantes]), ModuleName):-
 			conjuncionesALista(B, BResultado),
 			
 			append(BResultado, ConjuncionesRestantes, Rotulo),
-			agregarNodo(ModuleName, Rotulo, IDPadre, NodoAgregado),
+			agregarNodo(Rotulo, IDPadre, NodoAgregado),
 			% Agregamos un nodo con rótulo igual a la concatenación del cuerpo de A con el rótulo del padre de A sin A.
 			% Es decir reemplazamos A por su cuerpo.
 			
 			NodoAgregado = nodo(ID, _, _, _),
-			cambiarHijoRama(ModuleName, RamaLibre, ID),
+			cambiarHijoRama(RamaLibre, ID),
 			
 			write(A),
 			write(" es la cabeza de una regla con cuerpo "),
 			write(B),
 			nl,
-			aumentarFotogramaActual(ModuleName), % esto tiene que hacerse antes del solve.
+			aumentarFotogramaActual, % esto tiene que hacerse antes del solve.
 			solve(B, NodoAgregado, ModuleName)
 	).
 
 % Caso especial en el que A es un repeat.
-solve(repeat, nodo(IDPadre, _, _, [repeat | ConjuncionesRestantes]), ModuleName):-
-	crearRamaRepeat(ModuleName, IDPadre, -1, IDRepeat),
+solve(repeat, nodo(IDPadre, _, _, [repeat | ConjuncionesRestantes]), _):-
+	crearRamaRepeat(IDPadre, -1, IDRepeat),
 	!,
 	repeat,
-	buscarRamaRepeat(ModuleName, IDRepeat, RamaLibre),
+	buscarRamaRepeat(IDRepeat, RamaLibre),
 	
 	(
 		(RamaLibre \= rama(_, _, _, _, -1)) ->
@@ -365,12 +361,12 @@ solve(repeat, nodo(IDPadre, _, _, [repeat | ConjuncionesRestantes]), ModuleName)
 			true
 	),
 	
-	agregarRamaRepeat(ModuleName, IDPadre, -1, IDRepeat), % agregamos una rama extra si no fue podada, la cual será la del próximo backtracking.
+	agregarRamaRepeat(IDPadre, -1, IDRepeat), % agregamos una rama extra si no fue podada, la cual será la del próximo backtracking.
 	
-	agregarNodo(ModuleName, ConjuncionesRestantes, IDPadre, nodo(ID, _, _, _)),
+	agregarNodo(ConjuncionesRestantes, IDPadre, nodo(ID, _, _, _)),
 	
-	cambiarHijoRama(ModuleName, RamaLibre, ID),
-	aumentarFotogramaActual(ModuleName),
+	cambiarHijoRama(RamaLibre, ID),
+	aumentarFotogramaActual,
 	
 	write(repeat),
 	write(" es un repeat, por ello no accedemos y creamos rama alternativa."),
@@ -384,25 +380,25 @@ solve(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes]), ModuleNa
 	aggregate_all(count, ModuleName:A, C), % evaluar la posibilidad de que A sea un repeat!.
 	C > 0,
 	
-	datos(ModuleName, ultimaID_rama(IDRamaActual)),
+	datos(ultimaID_rama(IDRamaActual)),
 	IDPrimeraRama is IDRamaActual+1, %Guardamos el ID de la primera rama colocada.
 	
-	agregarRamas(ModuleName, C, IDPadre),
+	agregarRamas(C, IDPadre),
 	
-	datos(ModuleName, ultimaID_rama(IDUltimaRama)), %Guardamos el ID de la última rama colocada.
+	datos(ultimaID_rama(IDUltimaRama)), %Guardamos el ID de la última rama colocada.
 	
 	!, % Si C > 0, entonces existe algún cuerpo posible, borramos toda solución alternativa de 'solve' para mayor eficiencia.
 	ModuleName:A, %simplemente invocamos A para ver si se satisface.
 	
 	% buscamos la rama libre que será en la cual se agregará el nodo, si la rama fue podada entonces no es tenida en cuenta.
-	buscarRamaLibre(ModuleName, RamaLibre, IDPrimeraRama, IDUltimaRama),
+	buscarRamaLibre(RamaLibre, IDPrimeraRama, IDUltimaRama),
 
-	evaluarCutEnA(ModuleName, A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes])),
+	evaluarCutEnA(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes])),
 	
-	agregarNodo(ModuleName, ConjuncionesRestantes, IDPadre, nodo(ID, _, _, _)),
+	agregarNodo(ConjuncionesRestantes, IDPadre, nodo(ID, _, _, _)),
 	
-	cambiarHijoRama(ModuleName, RamaLibre, ID),
-	aumentarFotogramaActual(ModuleName),
+	cambiarHijoRama(RamaLibre, ID),
+	aumentarFotogramaActual,
 	
 	write(A),
 	write(" se cumple, pero es built-in, por ello no accedemos."),
@@ -414,9 +410,9 @@ solve(A, nodo(IDPadre, _, _, _), ModuleName):-
 	\+(clause(ModuleName:A, _)), % si A no se puede satisfacer con nada entonces falla.
 	!, % por cuestiones de eficiencia.
 	
-	agregarNodo(ModuleName, [fail], IDPadre, nodo(ID, _, _, _)),
-	agregarRama(ModuleName, IDPadre, ID, _),
-	aumentarFotogramaActual(ModuleName),
+	agregarNodo([fail], IDPadre, nodo(ID, _, _, _)),
+	agregarRama(IDPadre, ID, _),
+	aumentarFotogramaActual,
 	
     write("Falla "),
     write(A),
@@ -425,15 +421,15 @@ solve(A, nodo(IDPadre, _, _, _), ModuleName):-
     fail.
 	
 % En caso de que A sea provista por el sistema (built-in) y no se satisfaga entonces backtracking.
-solve(A, nodo(IDPadre, _, _, _), ModuleName):-
+solve(A, nodo(IDPadre, _, _, _), _):-
 	% A \= (_, _),
 	% predicate_property(A, nodebug),
 	% \+(A),
 	% acá la condición junto al cut no son necesarias, dado a que no hay más alternativas y las condiciones son excluyentes y extensivas (i.e.: abarcan todas las posibilidades)
 	
-	agregarNodo(ModuleName, [fail], IDPadre, nodo(ID, _, _, _)),
-	agregarRama(ModuleName, IDPadre, ID, _),
-	aumentarFotogramaActual(ModuleName),
+	agregarNodo([fail], IDPadre, nodo(ID, _, _, _)),
+	agregarRama(IDPadre, ID, _),
+	aumentarFotogramaActual,
 	
     write("Falla "),
     write(A),
@@ -446,17 +442,18 @@ solve(A, nodo(IDPadre, _, _, _), ModuleName):-
 % ModuleName será igual a nombreArchivo y Path igual a nombreArchivo.pl.
 % En caso querer utilizar la ubicación actual en la que se ejecuta el programa, y a partir de esta,
 % ubicar el archivo ModuleName, entonces Path debería ser de la siguiente forma: 'folderName/.../ModuleName.pl'.
-crearSLD(A, ModuleName, Path):-
+crearSLD(A, ModuleName, Path, ListaArbol):-
 	consult(Path),
 	
-	assertz(datos(ModuleName, fotogramaActual(1))),
-	assertz(datos(ModuleName, ultimaID_nodo(0))),
-	assertz(datos(ModuleName, ultimaID_rama(0))),
+	assertz(datos(fotogramaActual(1))),
+	assertz(datos(ultimaID_nodo(0))),
+	assertz(datos(ultimaID_rama(0))),
 	
 	conjuncionesALista(A, Rotulo),
-	assertz(arbol(ModuleName, nodo(0, -1, 0, Rotulo))), % Agregamos la raiz del árbol en el fotograma 0.
-	solve(A, nodo(0, -1, 0, Rotulo), ModuleName).
-	% findall(ElementoArbol, (arbol(ElementoArbol), writeln(ElementoArbol)), Lista).
+	assertz(arbol(nodo(0, -1, 0, Rotulo))), % Agregamos la raiz del árbol en el fotograma 0.
+	solve(A, nodo(0, -1, 0, Rotulo), ModuleName),
+	findall(ElementoArbol, arbol(ElementoArbol), ListaArbol),
+	eliminarArbol.
 
 
 
@@ -491,21 +488,21 @@ conjuncionesALista(A, [A]).
 
 
 % getMaxID(-MaxID)	
-getMaxID(ModuleName, MaxID):-
-	arbol(ModuleName, nodo(MaxID, _, _, _)),
-	esMayor(ModuleName, nodo(MaxID, _, _, _)),
+getMaxID(MaxID):-
+	arbol(nodo(MaxID, _, _, _)),
+	esMayor(nodo(MaxID, _, _, _)),
 	!.
 	
-esMayor(ModuleName, nodo(ID, _, _, _)):-
-	forall( (arbol(ModuleName, nodo(IDaux, _, _, _)), ID \= IDaux), IDaux < ID). %Las IDs son únicas.
+esMayor(nodo(ID, _, _, _)):-
+	forall( (arbol(nodo(IDaux, _, _, _)), ID \= IDaux), IDaux < ID). %Las IDs son únicas.
 	
-eliminarArbol(ModuleName):-
-	forall(arbol(ModuleName, P), retract(arbol(ModuleName, P))),
-	retractall(arbol(ModuleName, _)),
-	retractall(datos(ModuleName, _)),
+eliminarArbol:-
+	% forall(arbol(P), retract(arbol(P))),
+	retractall(arbol(_)),
+	retractall(datos(_)),
 
 	
-	assertz(datos(ModuleName, fotogramaActual(1))),
-	assertz(datos(ModuleName, ultimaID_nodo(0))),
-	assertz(datos(ModuleName, ultimaID_rama(0))).
+	assertz(datos(fotogramaActual(1))),
+	assertz(datos(ultimaID_nodo(0))),
+	assertz(datos(ultimaID_rama(0))).
 	

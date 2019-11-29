@@ -12,42 +12,75 @@ import javax.servlet.http.HttpSession;
 import org.jpl7.Atom;
 import org.jpl7.Query;
 import org.jpl7.Term;
+import org.jpl7.Variable;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.ResourceUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.context.ContextLoader;
+import org.springframework.web.context.request.RequestContextHolder;
 
 import form.ProgramaUsuario;
 import treeSLD.TreeSLD;
 
 @Controller
-@RequestMapping(value="/")
+//@RequestMapping(value="/")
 public class InicioController {
 	
 //	@Autowired mejor no lo hacemos un bean, creemos que no es correcto.
-	private TreeSLD generadorTree;
 
-	@RequestMapping(method=RequestMethod.GET)
+	@RequestMapping(value="/", method=RequestMethod.GET)
 	public String prepararForm(Model model) {
-		ProgramaUsuario p = new ProgramaUsuario();
-		generadorTree = new TreeSLD(p);
-		model.addAttribute("programaUsuario", p);
-		model.addAttribute("svgTreeSLD", null);
-		model.addAttribute("hayPrev", new Boolean(false));
-		model.addAttribute("hayNext", new Boolean(false));
 		
-		System.out.println("Se creó el generador!");
+		System.out.println("session2: " + RequestContextHolder.currentRequestAttributes().getSessionId());
 
 		return "inicio";
 	}
 	
-	@RequestMapping(params="createSLD", method=RequestMethod.POST)
-	public String crearSLD(@ModelAttribute("programaUsuario") ProgramaUsuario p, HttpSession session, BindingResult result, Model model, HttpServletRequest req) {
+//	@RequestMapping(value="/", method=RequestMethod.POST)
+//	public String crearSLD(@RequestBody String test) {
+//		System.out.println("Hola :V.");
+//		return "inicio";
+//	}
+	
+	//funciona
+	@RequestMapping(value="/p", method=RequestMethod.POST)
+	public String testPost(@ModelAttribute Test test) {
+		System.out.println("test: " + test.getStr());
+		System.out.println("Hola :D");
+		return "inicio";
+	}
+	
+	//funciona con: $.post('q', 'str=hola :v', function(obj){console.log('-> ', obj);});
+	@RequestMapping(value="/q", method=RequestMethod.POST)
+	public @ResponseBody Test testPost2(@ModelAttribute Test tRecibido) {
+		Test test = new Test();
+		test.setStr("jeje " + tRecibido.getStr());
+		System.out.println("Hola XD " + tRecibido.getStr());
+		return test;
+	}
+	
+	@RequestMapping(value="/q", method=RequestMethod.GET)
+	public String testGet2() {
+		return "q";
+	}
+	
+	@RequestMapping(value="/", method=RequestMethod.POST)
+	public String crearSLD(@ModelAttribute ProgramaUsuario p, BindingResult result, HttpServletRequest req) {
 		// Por ahora la validación de errores la hacemos acá, pero se puede separar y usar otra clase, creo que sería más correcto. Leer spring.pdf.
+		String sessionID = RequestContextHolder.currentRequestAttributes().getSessionId();
+		
+		System.out.println("Hola :v");
+		
+		System.out.println("p.sourceCode(): " + p.getSourceCode());
+		System.out.println("p.queryProlog(): " + p.getQueryProlog());
 		
 		if(p.getSourceCode() == "") {
 			result.rejectValue("sourceCode", "codeEmpty");
@@ -58,11 +91,10 @@ public class InicioController {
 		}
 		
 		
-		if(!result.hasErrors()) {
-			System.out.println("session: " + session.getId());
-			model.addAttribute("svgTreeSLD", generadorTree.generarSVG());
-			
-			String path = req.getServletContext().getRealPath("/prolog/" + session.getId() + ".pl");
+		if(!result.hasErrors()) {		
+			String path = req.getServletContext().getRealPath("/prolog/" + sessionID + ".pl");
+			// La idea es que haya una clase que gestione los nombres de los archivos, podría ser siemplemente un contador que vaya incrementado 
+			// a medida que le pedimos reservar un nombre.
 			
 			System.out.println("path: " + path);
 			
@@ -78,11 +110,14 @@ public class InicioController {
 //				Query q2 = new Query("crearSLD(" + p.getQueryProlog() + ", sourceUser).");
 				System.out.println("print0.");
 //				Query q2 = new Query("crearSLD(p).");
+
 				Query q2  = 
 				        new Query( 
 					            "crearSLD", 
-					            new Term[] {new Atom(p.getQueryProlog()), new Atom(session.getId()), new Atom(path)} 
+					            new Term[] {new Atom(p.getQueryProlog()), new Atom(sessionID), new Atom(path)} 
 					        );
+				
+				q2.allSolutions();
 				
 //				Query q2  = 
 //				        new Query( 
@@ -91,16 +126,18 @@ public class InicioController {
 //					        );
 //				System.out.println("q2.hasSolution(): " + q2.hasSolution());
 //				System.out.println("print0.5.");
-				q2.allSolutions();
-				System.out.println("print1.");
+				
+				
 				q2.close();
 				System.out.println("print2.");
 			} catch (Exception e) {
 				System.out.println("message: " + e.getMessage());
 				e.printStackTrace();
 			}
+		
 			
-			Query q3 = new Query("arbol(X).");
+			Query q3 = new Query("arbol", new Term[] {new Atom(sessionID), new Variable("X")});
+			System.out.println("q3 tiene solucion? " + q3.hasSolution());
 			for(Map<String, Term> s : q3.allSolutions()) {
 				System.out.println("X: " + s.get("X").toString());
 				String name = s.get("X").name();
@@ -113,26 +150,24 @@ public class InicioController {
 				}
 			}
 			q3.close();
+			
+			Query q4 = new Query("eliminarArbol", new Term[] {new Atom(sessionID)});
+			q4.allSolutions();
+			q4.close();
 		}
 		
-		model.addAttribute("hayPrev", new Boolean(false));
-		model.addAttribute("hayNext", new Boolean(true));
 		
 		return "inicio";
 	}
 	
-	@RequestMapping(params="nextStep")
+/*	@RequestMapping(params="nextStep")
 	public String avanzarSLD(@ModelAttribute("programaUsuario") ProgramaUsuario p, BindingResult result, Model model) {
 //		model.addAttribute("hayNext", new Boolean(true));
 		System.out.println("Next presionado1");
-		model.addAttribute("hayPrev", new Boolean(true));
-		model.addAttribute("hayNext", new Boolean(true));
 		
-		
-		model.addAttribute("svgTreeSLD", generadorTree.generarSVG());
 		
 		return "inicio";
-	}
+	}*/
 	
 	public void cargarSourceCode(String path, ProgramaUsuario programa) {
 		File f = new File(path);
@@ -157,6 +192,11 @@ public class InicioController {
 		//por lo tanto es necesario hacerlo.
 		q.close();
 		
+	}
+	
+	@RequestMapping("/nextStep")
+	public @ResponseBody String nextStep(@RequestParam("param1") String param) {
+		return "Exitoso " + param;
 	}
 	
 //	@RequestMapping(params="options", method=RequestMethod.POST)

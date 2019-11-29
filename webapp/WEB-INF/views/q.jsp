@@ -19,7 +19,6 @@ Además minimizar los archivos js utilizados, especialmente codemirror.js. Mirar 
 <script src="${urlPublic}/codemirror/addon/mode/simple.js"></script>
 <script src="${urlPublic}/codemirror/mode/prolog/prolog.js"></script>
 
-
 <link rel="stylesheet"
 	href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
 	integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
@@ -36,81 +35,30 @@ Además minimizar los archivos js utilizados, especialmente codemirror.js. Mirar 
 		<div class="row h-100">
 			<div class="form-group col-lg-6 h-100" style="margin-bottom: 10rem;">
 				<label>Source code</label>
-				<form id='program' class="h-100" autocomplete="off" spellcheck="false">
-					<textarea id="sourceCode"></textarea>
+				<form id='program' action="#" class="h-100" autocomplete="off" spellcheck="false">
+					<textarea id="str"></textarea>
 					<%-- <form:errors path="sourceCode" cssClass="errorCode" /> --%>
-
-					<div class="input-group mb-2">
-						<div class="input-group-prepend" style="margin-right: -9px;">
-							<div class="input-group-text">?-</div>
-						</div>
-						<input id="queryProlog"
-							placeholder="example(X)." class="form-control"
-							style="font-style: italic;" /> 
-					</div>
 
 					<%--  <form:errors path="queryProlog" cssClass="errorCode" /> --%>
 
 					<div class="btn-group col-lg-12" style="margin-bottom: 15px; padding-left: 0px; padding-right: 0px;" role="group">
-						<input class="btn btn-primary" type="submit" value="Create SLD" id="createButton"/>
-						<button class="btn btn-primary" type="button" id="nextButton" style="display: none;">Next</button>
-						<button class="btn btn-primary" type="button" id="stopButton" style="display: none;">Stop</button>
-						<button class="btn btn-primary" type="button" id="optionsButton" style="display: block;">Options</button>
+						<input class="btn btn-primary" type="submit" value="Create SLD" id="createButton" style="display: block;"/>
 					</div>
-					
-
-
-				<!-- Modal -->
-				<div class="modal fade" id="modalOptions" tabindex="-1" role="dialog" aria-hidden="true">
-					<div class="modal-dialog modal-dialog-centered modal-sm" role="document">
-						<div class="modal-content">
-							<div class="modal-header">
-								<h5 class="modal-title">Opciones</h5>
-								<button type="button" class="close" data-dismiss="modal" aria-label="Close">
-									<span aria-hidden="true">&times;</span>
-								</button>
-							</div>
-							<div class="modal-body">
-								<div class="form-check">
-									<input type="checkbox" id="occurs_check"/>
-									<label class="form-check-label" for="occurs_check">
-									  Occurs check
-									</label>
-								</div>
-								<div class="form-check">
-									<input type="checkbox" id="show_substitutions"/>
-									<label class="form-check-label" for="show_substitutions">
-									  View substitutions
-									</label>
-								</div>
-							</div>
-<!-- 							<div class="modal-footer">
-								<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-								<button type="button" class="btn btn-primary">Save changes</button>
-							</div> -->
-						</div>
-					</div>
-				</div>
-				
 				</form>
 
 
-
-				<script>
-
-				</script>
 			</div>
 
 			<div class="form-group col-lg-6 h-100">
 				<label>SLDTree</label>
 				<div class="form-control rounded-10 h-100" id="sldtree" style="margin-top: 0px; margin-bottom: 10px; overflow: auto;">
-					<canvas id="canvasSldTree"></canvas>
+
 				</div>
 				
 					<div class="btn-group col-lg-12" style="margin-bottom: 15px; padding-left: 0px; padding-right: 0px;" role="group">
-						<button class="btn btn-primary" type="button" name="prevStep" id="prevStepButton">Prev step</button>
-						<button class="btn btn-primary" type="button" name="nextStep" id="nextStepButton">Next step</button>
-						<button class="btn btn-primary" type="button" name="skip" id="skipButton">Skip</button>
+						<button class="btn btn-primary" type="submit" name="prevStep" id="prevStepButton">Prev step</button>
+						<button class="btn btn-primary" type="submit" name="nextStep" id="nextStepButton" onclick="avanzarSLD();">Next step</button>
+						<button class="btn btn-primary" type="submit" name="skip" id="skipButton">Skip</button>
 					</div>
 						
 					<script>				
@@ -118,7 +66,6 @@ Además minimizar los archivos js utilizados, especialmente codemirror.js. Mirar 
 						document.getElementById("nextStepButton").style.display = "none";
 						document.getElementById("skipButton").style.display = "none";
 					</script>
-					
 				<span id="mySpan"></span>	
 			</div>
 			
@@ -141,7 +88,32 @@ Además minimizar los archivos js utilizados, especialmente codemirror.js. Mirar 
 		}
 	</script>
 	
-	<script src="${urlPublic}/js/main.js"></script>
-
+	
+			<script type="text/javascript">		
+				$('#program').submit(function(evento) {
+					
+					 $.ajax({
+			            url: 'q',
+			            dataType: 'json',
+			            method: 'POST',
+			            data: JSON.stringify({
+			            	str: 'asd'
+			            	}),
+			           	processData: false,
+			           	contentType: "application/json"
+			        });
+					
+					//$.post('');
+			      				
+					evento.preventDefault(); 
+			    });
+			
+				function avanzarSLD() {
+					document.getElementById("prevStepButton").disabled = false;
+					
+					
+					$('#mySpan').load('nextStep', 'param1= Hola mundo');
+				}
+			</script>
 </body>
 </html>
