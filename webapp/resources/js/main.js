@@ -48,6 +48,25 @@ $('#nextButton').click(() => {
 	document.getElementById("nextButton").disabled = true;
 });
 
+$('#skipButton').click(() => {
+	var elem = document.getElementById('sldtree');
+	
+	if (elem.requestFullscreen) {
+		elem.requestFullscreen();
+	} else if (elem.mozRequestFullScreen) { /* Firefox */
+		elem.mozRequestFullScreen();
+	} else if (elem.webkitRequestFullscreen) { /* Chrome, Safari & Opera */
+		elem.webkitRequestFullscreen();
+	} else if (elem.msRequestFullscreen) { /* IE/Edge */
+		elem.msRequestFullscreen();
+	}
+	
+	setTimeout(function() {
+		tree.tree.redraw();
+	}, 500);
+	
+});
+
 
 
 $('#nextStepButton').click(() => {

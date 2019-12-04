@@ -64,3 +64,26 @@ html, body {
 	max-width: fit-content;
 } */
 
+
+/* Fullcreen */
+
+/* Chrome, Safari and Opera syntax */
+:-webkit-full-screen {
+  background-color: white;
+}
+
+/* Firefox syntax */
+:-moz-full-screen {
+  background-color: white;
+}
+
+/* IE/Edge syntax */
+:-ms-fullscreen {
+  background-color: white;
+}
+
+/* Standard syntax */
+:fullscreen {
+  background-color: white;
+}
+

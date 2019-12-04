@@ -132,19 +132,7 @@ public class InicioController {
 		manejadorArbol.eliminarArbol(session);
 	}
 	
-	@RequestMapping("/nextSolution")
-	public @ResponseBody void nextSolution() {
-		String session = RequestContextHolder.currentRequestAttributes().getSessionId();
-		ArbolSLD arbol = manejadorArbol.getArbolSLD(session);
-		//arbol.nextSolution();
-		arbol.siguienteFotograma();
-	}
-	
-	@RequestMapping("/hasMoreSolutions")
-	public @ResponseBody boolean hasMoreSolutions() {
-		String session = RequestContextHolder.currentRequestAttributes().getSessionId();
-		return manejadorArbol.getArbolSLD(session).hasMoreSolutions();
-	}
+
 	
 	
 	
