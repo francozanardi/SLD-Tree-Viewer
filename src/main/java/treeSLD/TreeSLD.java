@@ -22,7 +22,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.svg.SVGDocument;
 
-import form.ProgramaUsuario;
+import com.gmail.francozanardi97.app.model.ProgramaUsuario;
 
 public class TreeSLD {
 	private ProgramaUsuario programa;

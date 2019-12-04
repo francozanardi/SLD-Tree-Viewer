@@ -1,11 +1,14 @@
-package treeSLD;
+package com.gmail.francozanardi97.app.model;
 
-public class NodoTree extends ElementoTree {
-	protected String rotulo;
+public class NodoTree {
+	private String rotulo;
+	private int id;
 //	protected int columnasOcupadas;
-	
-	public NodoTree(String rot) {
+
+
+	public NodoTree( int id, String rot) {
 		rotulo = rot;
+		this.id = id;
 //		columnasOcupadas = 1;
 	}
 
@@ -15,6 +18,14 @@ public class NodoTree extends ElementoTree {
 
 	public void setRotulo(String rotulo) {
 		this.rotulo = rotulo;
+	}
+		
+	public int getId() {
+		return id;
+	}
+
+	public void setId(int id) {
+		this.id = id;
 	}
 
 //	public int getColumnasOcupadas() {

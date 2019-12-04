@@ -2,6 +2,8 @@ package treeSLD;
 
 import java.util.Comparator;
 
+import com.gmail.francozanardi97.app.treeSLD.ElementoTree;
+
 public class ComparadorElementos<E extends ElementoTree> implements Comparator<E> {
 
 	@Override

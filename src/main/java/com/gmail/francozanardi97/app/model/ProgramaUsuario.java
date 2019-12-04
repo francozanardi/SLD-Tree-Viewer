@@ -1,4 +1,4 @@
-package form;
+package com.gmail.francozanardi97.app.model;
 
 public class ProgramaUsuario {
 	private String sourceCode;

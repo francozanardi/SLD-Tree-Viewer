@@ -1,0 +1,13 @@
+Conceptos para Spring MVC.
+
+DAO (objetos que se encargan la persistencia de datos): https://es.wikipedia.org/wiki/Objeto_de_acceso_a_datos
+POJO (objetos con programación de java nativo, sin framework): https://es.wikipedia.org/wiki/Plain_Old_Java_Object
+DTO (objetos utilizados para almacenar datos que se van a transferir entre el cliente y el servidor): https://es.wikipedia.org/wiki/Objeto_de_transferencia_de_datos
+
+Patrones de diseño que usa Spring MVC:
+* Inyección de dependencias: 
+* Front controller (se encarga de comunicar las vistas con el controlador que le corresponda): http://www.jtech.ua.es/j2ee/publico/spring-2012-13/sesion03-apuntes.html
+* Modelo-vista-controlador: 
+
+
+DAO y DTO son parte del modelo en el patrón MVC.

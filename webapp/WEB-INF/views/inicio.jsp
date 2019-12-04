@@ -9,6 +9,10 @@
 
 <link rel="stylesheet" href="${urlPublic}/codemirror/lib/codemirror.css">
 <link rel="stylesheet" href="${urlPublic}/codemirror/mode/prolog/prolog.css">
+
+<link rel="stylesheet" href="${urlPublic}/treant/Treant.css">
+<link rel="stylesheet" href="${urlPublic}/treant/vendor/perfect-scrollbar/perfect-scrollbar.css">
+
 <link rel="stylesheet" href="${urlPublic}/css/style.css">
 
 
@@ -18,6 +22,8 @@ Además minimizar los archivos js utilizados, especialmente codemirror.js. Mirar 
 <script src="${urlPublic}/codemirror/addon/edit/matchbrackets.js"></script>
 <script src="${urlPublic}/codemirror/addon/mode/simple.js"></script>
 <script src="${urlPublic}/codemirror/mode/prolog/prolog.js"></script>
+
+
 
 
 <link rel="stylesheet"
@@ -103,8 +109,8 @@ Además minimizar los archivos js utilizados, especialmente codemirror.js. Mirar 
 
 			<div class="form-group col-lg-6 h-100">
 				<label>SLDTree</label>
-				<div class="form-control rounded-10 h-100" id="sldtree" style="margin-top: 0px; margin-bottom: 10px; overflow: auto;">
-					<canvas id="canvasSldTree"></canvas>
+				<div class="chart h-100" id="sldtree">
+				
 				</div>
 				
 					<div class="btn-group col-lg-12" style="margin-bottom: 15px; padding-left: 0px; padding-right: 0px;" role="group">
@@ -129,6 +135,12 @@ Además minimizar los archivos js utilizados, especialmente codemirror.js. Mirar 
 
 
 	<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+	<script src="${urlPublic}/treant/vendor/jquery.easing.js"></script>
+	<script src="${urlPublic}/treant/vendor/raphael.js"></script>
+	<script src="${urlPublic}/treant/Treant.js"></script>
+	
+	<script src="${urlPublic}/treant/vendor/jquery.mousewheel.js"></script>
+	<script src="${urlPublic}/treant/vendor/perfect-scrollbar/perfect-scrollbar.js"></script>
 
 	<script
 		src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"

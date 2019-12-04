@@ -6,6 +6,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Map;
 
+import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
@@ -13,6 +14,7 @@ import org.jpl7.Atom;
 import org.jpl7.Query;
 import org.jpl7.Term;
 import org.jpl7.Variable;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -27,7 +29,12 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.context.ContextLoader;
 import org.springframework.web.context.request.RequestContextHolder;
 
-import form.ProgramaUsuario;
+import com.gmail.francozanardi97.app.model.NodoTree;
+import com.gmail.francozanardi97.app.model.ProgramaUsuario;
+import com.gmail.francozanardi97.app.model.RamaTree;
+import com.gmail.francozanardi97.app.treeSLD.ArbolSLD;
+import com.gmail.francozanardi97.app.treeSLD.ManejadorArbolesSLD;
+
 import treeSLD.TreeSLD;
 
 @Controller
@@ -35,20 +42,23 @@ import treeSLD.TreeSLD;
 public class InicioController {
 	
 //	@Autowired mejor no lo hacemos un bean, creemos que no es correcto.
+//	@Autowired
+//	private ServletContext servletContext;
+	
+	@Autowired
+	private ManejadorArbolesSLD manejadorArbol;
 
 	@RequestMapping(value="/", method=RequestMethod.GET)
 	public String prepararForm(Model model) {
 		
-		System.out.println("session2: " + RequestContextHolder.currentRequestAttributes().getSessionId());
+		System.out.println("session: " + RequestContextHolder.currentRequestAttributes().getSessionId());
+
+//		System.out.println("servletContext: " + servletContext);
+	
 
 		return "inicio";
 	}
 	
-//	@RequestMapping(value="/", method=RequestMethod.POST)
-//	public String crearSLD(@RequestBody String test) {
-//		System.out.println("Hola :V.");
-//		return "inicio";
-//	}
 	
 	//funciona
 	@RequestMapping(value="/p", method=RequestMethod.POST)
@@ -73,6 +83,51 @@ public class InicioController {
 	}
 	
 	@RequestMapping(value="/", method=RequestMethod.POST)
+	public @ResponseBody NodoTree[] crearSLD(@ModelAttribute ProgramaUsuario p) {
+		String sessionID = RequestContextHolder.currentRequestAttributes().getSessionId();
+		ArbolSLD arbol;
+		
+		if(p != null && !p.getQueryProlog().isEmpty() && !p.getSourceCode().isEmpty()) {
+			arbol = manejadorArbol.agregarArbolSLD(sessionID, p);
+			return arbol.getNodosActuales();
+		}
+		
+		//acá debería obtener los nodos en el fot actual y enviarlo, podría ser en un array. hasta ahí todo piola.
+		//el problema sería cuando haga un next, ya que ahi debería obtener tanto los nodos, como las ramas y las ramas cuts.
+		
+		return null;
+	}
+	
+	@RequestMapping("/avanzarFotograma")
+	public @ResponseBody Integer avanzarFotograma() {
+		String session = RequestContextHolder.currentRequestAttributes().getSessionId();
+		ArbolSLD arbol = manejadorArbol.getArbolSLD(session);
+		arbol.siguienteFotograma();
+		
+		return arbol.getFotograma();
+	}
+	
+	@RequestMapping("/getNodos")
+	public @ResponseBody NodoTree[] getNodos() {
+		String session = RequestContextHolder.currentRequestAttributes().getSessionId();
+		return manejadorArbol.getArbolSLD(session).getNodosActuales();
+	}
+	
+	@RequestMapping("/getRamas")
+	public @ResponseBody RamaTree[] getRamas() {
+		String session = RequestContextHolder.currentRequestAttributes().getSessionId();
+		return manejadorArbol.getArbolSLD(session).getRamasActuales();
+	}
+	
+	@RequestMapping("/getRamasCut")
+	public @ResponseBody RamaTree[] getRamasCut() {
+		String session = RequestContextHolder.currentRequestAttributes().getSessionId();
+		return manejadorArbol.getArbolSLD(session).getRamasCutActuales();
+	}
+	
+	
+	
+	/*@RequestMapping(value="/", method=RequestMethod.POST)
 	public String crearSLD(@ModelAttribute ProgramaUsuario p, BindingResult result, HttpServletRequest req) {
 		// Por ahora la validación de errores la hacemos acá, pero se puede separar y usar otra clase, creo que sería más correcto. Leer spring.pdf.
 		String sessionID = RequestContextHolder.currentRequestAttributes().getSessionId();
@@ -105,40 +160,20 @@ public class InicioController {
 			cargarSourceCode(path, p);
 			cargarMetainterprete(pathMI);
 			
-			System.out.println("p.getQueryProlog(): " + p.getQueryProlog());
-			try {
-//				Query q2 = new Query("crearSLD(" + p.getQueryProlog() + ", sourceUser).");
-				System.out.println("print0.");
-//				Query q2 = new Query("crearSLD(p).");
-
-				Query q2  = 
-				        new Query( 
-					            "crearSLD", 
-					            new Term[] {new Atom(p.getQueryProlog()), new Atom(sessionID), new Atom(path)} 
-					        );
-				
-				q2.allSolutions();
-				
-//				Query q2  = 
-//				        new Query( 
-//					            "tst", 
-//					            new Term[] {new Atom("p"), new Atom("sourceUser")} 
-//					        );
-//				System.out.println("q2.hasSolution(): " + q2.hasSolution());
-//				System.out.println("print0.5.");
-				
-				
-				q2.close();
-				System.out.println("print2.");
-			} catch (Exception e) {
-				System.out.println("message: " + e.getMessage());
-				e.printStackTrace();
-			}
+			Query queryCrearSLD  = 
+			        new Query( 
+				            "crearSLD", 
+				            new Term[] {new Atom(p.getQueryProlog()), new Atom(sessionID), new Atom(path)} 
+				        );
+			
+			queryCrearSLD.allSolutions();
+			
+			queryCrearSLD.close();
 		
 			
-			Query q3 = new Query("arbol", new Term[] {new Atom(sessionID), new Variable("X")});
-			System.out.println("q3 tiene solucion? " + q3.hasSolution());
-			for(Map<String, Term> s : q3.allSolutions()) {
+			Query queryArbol = new Query("arbol", new Term[] {new Atom(sessionID), new Variable("X")});
+			System.out.println("q3 tiene solucion? " + queryArbol.hasSolution());
+			for(Map<String, Term> s : queryArbol.allSolutions()) {
 				System.out.println("X: " + s.get("X").toString());
 				String name = s.get("X").name();
 				
@@ -149,59 +184,21 @@ public class InicioController {
 					}
 				}
 			}
-			q3.close();
+			queryArbol.close();
 			
-			Query q4 = new Query("eliminarArbol", new Term[] {new Atom(sessionID)});
-			q4.allSolutions();
-			q4.close();
+			Query queryEliminarArbol = new Query("eliminarArbol", new Term[] {new Atom(sessionID)});
+			queryEliminarArbol.allSolutions();
+			queryEliminarArbol.close();
 		}
-		
-		
-		return "inicio";
-	}
-	
-/*	@RequestMapping(params="nextStep")
-	public String avanzarSLD(@ModelAttribute("programaUsuario") ProgramaUsuario p, BindingResult result, Model model) {
-//		model.addAttribute("hayNext", new Boolean(true));
-		System.out.println("Next presionado1");
 		
 		
 		return "inicio";
 	}*/
 	
-	public void cargarSourceCode(String path, ProgramaUsuario programa) {
-		File f = new File(path);
-		try {
-			FileWriter w = new FileWriter(f);
-			w.append(programa.getSourceCode());
-			w.flush();
-			w.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
 	
-	public void cargarMetainterprete(String path) {
-		Query q = 
-		        new Query( 
-		            "consult", 
-		            new Term[] {new Atom(path)} 
-		        );
-		
-		System.out.println("q.hasSolution(): " + q.hasSolution()); //esto no solo verifica si existe una solución, sino que también abre la solución encontrada.
-		//por lo tanto es necesario hacerlo.
-		q.close();
-		
-	}
-	
-	@RequestMapping("/nextStep")
-	public @ResponseBody String nextStep(@RequestParam("param1") String param) {
-		return "Exitoso " + param;
-	}
-	
-//	@RequestMapping(params="options", method=RequestMethod.POST)
-//	public String abrirOpciones(@ModelAttribute("programaUsuario") ProgramaUsuario p, BindingResult result, Model model) {
-//
-//		return "inicio";
+//	@RequestMapping("/nextStep")
+//	public @ResponseBody String nextStep(@RequestParam("param1") String param) {
+//		return "Exitoso " + param;
 //	}
+	
 }

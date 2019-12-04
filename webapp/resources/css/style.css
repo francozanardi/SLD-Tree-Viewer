@@ -21,3 +21,45 @@ html, body {
 /* #loadOverlay {
 	display: none;
 } */
+
+.chart {
+/* 	height: 159px;
+	width: 332px; */
+/* 	border: 3px solid #DDD;
+	border-radius: 3px; */
+	border: 1px solid #ced4da;
+    border-radius: .25rem;
+    margin-top: 0px;
+    margin-bottom: 10px;
+}
+
+.node {
+	color: #9CB5ED;
+	border: 2px solid #C8C8C8;
+	border-radius: 3px;
+}
+
+.node_invisible {
+	color: #FFFFFF;
+	border: 0px solid #FFFFFF;
+	border-radius: 0px;
+}
+
+.node p {
+	font-size: 20px;
+	line-height: 18px;
+	height: 18px;
+	font-weight: bold;
+	/* padding: 3px; */
+	margin: auto 4px;
+	text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden; 
+	max-width: 100px;
+}
+
+/* .node p:hover {
+	overflow: visible;
+	max-width: fit-content;
+} */
+
