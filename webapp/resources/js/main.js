@@ -1,4 +1,10 @@
-editor = CodeMirror.fromTextArea(document.getElementById("sourceCode"), {
+var tree;
+var mapNodos = new Map(); //mapeo desde id nodo a objeto TreeNode
+var mapRamasDisponibles = new Map();
+//mapeo que contiene solo las ramas sin nodos hijos,
+//es decir el mapeo va desde id rama a objeto TreeNode, el cual es un nodo invisible.
+
+var editor = CodeMirror.fromTextArea(document.getElementById("sourceCode"), {
 	lineNumbers : true,
 	matchBrackets : true,
 	theme : "prolog"
@@ -9,24 +15,70 @@ $('#optionsButton').click(() => {
 	$('#modalOptions').modal('show');
 });
 
+$('#stopButton').click(() => {
+	$.get('eliminarArbol', () => {
+		document.getElementById("createButton").style.display = "block";
+		document.getElementById("optionsButton").style.display = "block";
+		document.getElementById("nextButton").style.display = "none";
+		document.getElementById("stopButton").style.display = "none";
+
+		document.getElementById("prevStepButton").style.display = "none";
+		document.getElementById("nextStepButton").style.display = "none";
+		document.getElementById("skipButton").style.display = "none";
+		document.getElementById("prevStepButton").disabled = true;
+
+	});
+});
+
+$('#nextButton').click(() => {
+	$.get('avanzarFotograma')
+	.then(fotActual => {
+		return $.get('getNodos');
+	})
+	.then(nodos => {
+		graficarNodos(nodos);
+		
+		if(nodos.length == 1 && nodos[0].rotulo === "'[]'"){ //es la cláusula vacía
+			document.getElementById("nextStepButton").disabled = true;
+		} else {
+			document.getElementById("nextStepButton").disabled = false;
+		}
+	});
+	
+	document.getElementById("nextButton").disabled = true;
+});
+
+
+
 $('#nextStepButton').click(() => {
 	document.getElementById("prevStepButton").disabled = false;
 	
 	$.get('avanzarFotograma')
 		.then(fotActual => {
 			$('#mySpan').text(fotActual);
-			return $.get('getNodos');
-		})
-		.then(nodos => {
-			console.log('nodos: ', nodos);
 			return $.get('getRamas');
 		})
 		.then(ramas => {
 			console.log('ramas: ', ramas);
+			
+			graficarRamas(ramas);
 			return $.get('getRamasCut');
 		})
 		.then(ramasCut => {
 			console.log('ramasCut: ', ramasCut);
+			
+			graficarRamasCut(ramasCut);
+			return $.get('getNodos');
+		})
+		.then(nodos => {
+			console.log('nodos: ', nodos);
+			
+			graficarNodos(nodos);
+			
+			if(nodos.length == 1 && nodos[0].rotulo === "'[]'"){ //es la cláusula vacía
+				document.getElementById("nextStepButton").disabled = true;
+				document.getElementById("nextButton").disabled = false;
+			}
 		});
 
 });
@@ -37,10 +89,9 @@ $('#program').submit(
 
 			var s = "sourceCode=" + editor.getValue() + "&queryProlog="
 					+ $('#queryProlog').val()
-			console.log('-> ', s);
 
-			$.post('', s, (nodos => {
-				console.log('nodos en crearSLD: ', nodos);
+			$.post('', s, (nodo => {
+				crearArbol(nodo);
 			}));
 
 			document.getElementById("createButton").style.display = "none";
@@ -51,14 +102,21 @@ $('#program').submit(
 			document.getElementById("prevStepButton").style.display = "block";
 			document.getElementById("nextStepButton").style.display = "block";
 			document.getElementById("skipButton").style.display = "block";
+			
 			document.getElementById("prevStepButton").disabled = true;
+			document.getElementById("nextButton").disabled = true;
+			document.getElementById("nextStepButton").disabled = false;
+			
 
 			evento.preventDefault();
 		}
 );
 
 
-var s = {
+function crearArbol(nodo){
+	console.log('nodo.rotulo: ', nodo.rotulo);
+	
+	var config = {
 			chart: {
 				container: "#sldtree",
 				scrollbar: "fancy",
@@ -82,13 +140,13 @@ var s = {
 							
 							setTimeout(function() {
 								if(esperando){
-									var wOrig = $(self).width();
+									var wOrig = $(self).outerWidth();
 									
 									$(self).css({'overflow' : 'visible'});
 									$(self).css({'max-width' : 'fit-content'});
 									
 									if($(self).width() > wOrig){
-										newNode.width = $(self).width();
+										newNode.width = $(self).outerWidth();
 										newNode.getTree().redraw();
 										redraw = true;
 									}
@@ -104,7 +162,7 @@ var s = {
 								$(this).css({'max-width' : '100px'});
 								
 								if(redraw){
-									newNode.width = $(this).width();
+									newNode.width = $(this).outerWidth();
 									newNode.getTree().redraw();
 									redraw = false;
 								}
@@ -129,52 +187,71 @@ var s = {
 			},
 			
 			nodeStructure: {
-				text: { name: "Parent node" },
-				HTMLid: 'idNodo0',
-				children: [
-					{
-						text: { name: "First child" },
-						HTMLid: 'idNodo1',
-						children: [
-							{
-								text: {name: "Tercero"},
-								HTMLid: 'idNodo3',
-							}
-						]
-					},
-					{
-						text: { name: "Second child" },
-						HTMLid: 'idNodo2',
-	
-					}
-				]
-			},
-		};
-
-var t = new Treant(s, null, $);
-
-var nuevoNodo = {
 					text: {
-						name: "Hola Hola Hola"
+						name: nodo.rotulo
 					},
-					
-					HTMLid: "idnodo4",
-				};
-
-var nodoInvisible = {
-		text: {
-			name: "______"
-		},
-		HTMLclass: "node_invisible",
-		HTMLid: "nodeid"
-};
-var nodoPadre = t.tree.nodeDB.db[1];
-
-
-function addNode(){
-	var newNode = t.tree.addNode(nodoPadre, nuevoNodo);
+					HTMLid: 'nodo_' + nodo.id
+			}
+			
+		};
 	
+	tree = new Treant(config, null, $);
+	
+	mapNodos.set(0, tree.tree.nodeDB.db[0]); 
+
 }
+
+function graficarRamas(ramas){
+	for(let i in ramas){
+		let rama = ramas[i];
+		
+		let nodeInvisible = {
+				text: {
+					name: "IIIIIII"
+				},
+				HTMLclass: "nodo_invisible",
+				HTMLid: "rama_" + rama.id
+		};
+				
+		let nuevoNodoInvisible = tree.tree.addNode(mapNodos.get(rama.padre), nodeInvisible);
+		
+		mapRamasDisponibles.set(rama.id, nuevoNodoInvisible);
+	}
+}
+
+function graficarNodos(nodos){
+	for(let i in nodos){
+		let nodo = nodos[i];
+		
+		let nodoInvisible = mapRamasDisponibles.get(nodo.idRama);
+		
+		$(nodoInvisible.nodeDOM).removeClass('nodo_invisible'); //todo: hay que cambiar el htmlID al que corresponda
+		/*
+		 * La siguiente instrucción se debe a que el quitarle la clase 'nodo_invisible' puede modificar la altura del 'div'
+		 * (si se agregase borde al remover esta clase, por ejemplo).
+		 * El hecho de que se llame antes de setTextName, es que sabemos que este método ejecutará un redraw(), por lo tanto evitamos
+		 * ejecutarlos nosotros para actualizar el cambio en la altura.
+		 */
+		
+		nodoInvisible.height = nodoInvisible.nodeDOM.offsetHeight+1;
+		nodoInvisible.setTextName(nodo.rotulo);
+		
+		mapRamasDisponibles.delete(nodo.idRama);
+		mapNodos.set(nodo.id, nodoInvisible);
+	}
+}
+
+function graficarRamasCut(ramas){
+	for(let i in ramas){
+		let rama = ramas[i];
+		
+		mapRamasDisponibles.get(rama.id).cutRama();
+		mapRamasDisponibles.delete(rama.id);
+	}
+}
+
+
+
 
 
 //t.tree.addNode(nodoPadre, nuevoNodo);

@@ -49,7 +49,7 @@ public class ArbolSLD {
 			            new Term[] {new Atom(programaUsuario.getQueryProlog()), new Atom(namePU), new Atom(pathPU)} 
 			        );
 		
-		queryCrearSLD.oneSolution();
+		queryCrearSLD.allSolutions();
 	}
 	
 	private void cargarUserProgram() {
@@ -62,6 +62,27 @@ public class ArbolSLD {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public boolean nextSolution() {
+//		if(!queryCrearSLD.hasMoreSolutions()) {
+//			System.out.println("No hay más soluciones mostro");
+//			return false;
+//		}
+		
+//		queryCrearSLD.oneSolution();
+//		
+//		queryCrearSLD.open();
+//		queryCrearSLD.hasMoreSolutions();
+//		queryCrearSLD.nextSolution();
+//		queryCrearSLD.hasMoreSolutions();
+//		queryCrearSLD.nextSolution();
+//		System.out.println("Hay más soluciones capoide");
+		return true;
+	}
+	
+	public boolean hasMoreSolutions() {
+		return queryCrearSLD.hasMoreSolutions();
 	}
 
 	
@@ -88,15 +109,37 @@ public class ArbolSLD {
 		queryArbol.close();
 	}*/
 	
+	public NodoTree getRaiz() {
+		Query q = new Query(String.format("arbol('%s', nodo(ID, -1, %d, Rotulo))", namePU, fotogramaActual));
+		
+		
+		Map<String, Term> solucion = q.oneSolution();
+		NodoTree raiz;
+
+		raiz = new NodoTree(
+								Integer.parseInt(solucion.get("ID").toString()),
+								-1,
+								solucion.get("Rotulo").toString()
+							);
+		
+		q.close();
+		
+		return raiz;
+	}
+	
 	public NodoTree[] getNodosActuales() {	
-		Query q = new Query(String.format("arbol('%s', nodo(ID, _, %d, Rotulo))", namePU, fotogramaActual));
+		Query q = new Query(String.format("arbol('%s', nodo(ID, IDPadre, %d, Rotulo)), arbol('%s', rama(IDRama, _, IDPadre, ID, _))", namePU, fotogramaActual, namePU));
 		
 		
 		Map<String, Term>[] soluciones = q.allSolutions();
 		NodoTree[] nodos = new NodoTree[soluciones.length];
 		
 		for(int i = 0; i < soluciones.length; i++) {
-			nodos[i] = new NodoTree(Integer.parseInt(soluciones[i].get("ID").toString()), soluciones[i].get("Rotulo").toString());
+			nodos[i] = new NodoTree(
+										Integer.parseInt(soluciones[i].get("ID").toString()),
+										Integer.parseInt(soluciones[i].get("IDRama").toString()),
+										soluciones[i].get("Rotulo").toString()
+									);
 		}	
 		
 		q.close();
@@ -124,20 +167,18 @@ public class ArbolSLD {
 	}
 	
 	public RamaTree[] getRamasCutActuales() {	
-		Query q = new Query(String.format("arbol('%s', rama(ID, %d, NodoP, NodoH, Cut)), Cut \\= -1", namePU, fotogramaActual));
+		Query q = new Query(String.format("arbol('%s', rama(ID, _, NodoP, NodoH, %d))", namePU, fotogramaActual));
 		
 		
 		Map<String, Term>[] soluciones = q.allSolutions();
 		RamaTree[] ramas = new RamaTree[soluciones.length];
 		
 		for(int i = 0; i < soluciones.length; i++) {
-			if(!soluciones[i].get("Cut").toString().equals("-1")) {
-				ramas[i] = new RamaTree(
-											Integer.parseInt(soluciones[i].get("ID").toString()),
-											Integer.parseInt(soluciones[i].get("NodoP").toString()),
-											Integer.parseInt(soluciones[i].get("NodoH").toString())
-										);
-			}
+			ramas[i] = new RamaTree(
+										Integer.parseInt(soluciones[i].get("ID").toString()),
+										Integer.parseInt(soluciones[i].get("NodoP").toString()),
+										Integer.parseInt(soluciones[i].get("NodoH").toString())
+									);
 		}	
 		
 		q.close();
@@ -145,5 +186,11 @@ public class ArbolSLD {
 		return ramas;
 	}
 	
+//	public void eliminarArbol() {
+//		Query q = new Query(String.format("eliminarArbol('%s')", namePU));
+//		q.allSolutions();
+//		q.close();
+//	}
+//	
 	
 }

@@ -59,7 +59,7 @@ Además minimizar los archivos js utilizados, especialmente codemirror.js. Mirar 
 
 					<div class="btn-group col-lg-12" style="margin-bottom: 15px; padding-left: 0px; padding-right: 0px;" role="group">
 						<input class="btn btn-primary" type="submit" value="Create SLD" id="createButton"/>
-						<button class="btn btn-primary" type="button" id="nextButton" style="display: none;">Next</button>
+						<button class="btn btn-primary" type="button" id="nextButton" style="display: none;">Next Solution</button>
 						<button class="btn btn-primary" type="button" id="stopButton" style="display: none;">Stop</button>
 						<button class="btn btn-primary" type="button" id="optionsButton" style="display: block;">Options</button>
 					</div>

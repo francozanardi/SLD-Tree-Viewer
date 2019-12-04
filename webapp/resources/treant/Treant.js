@@ -2081,7 +2081,7 @@
         drawArea.appendChild(node);
 
         this.width = node.offsetWidth;
-        this.height = node.offsetHeight;
+        this.height = node.offsetHeight+1;
 	
         this.nodeDOM = node;
 

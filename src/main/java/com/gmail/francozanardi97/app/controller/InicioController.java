@@ -83,13 +83,13 @@ public class InicioController {
 	}
 	
 	@RequestMapping(value="/", method=RequestMethod.POST)
-	public @ResponseBody NodoTree[] crearSLD(@ModelAttribute ProgramaUsuario p) {
+	public @ResponseBody NodoTree crearSLD(@ModelAttribute ProgramaUsuario p) {
 		String sessionID = RequestContextHolder.currentRequestAttributes().getSessionId();
 		ArbolSLD arbol;
 		
 		if(p != null && !p.getQueryProlog().isEmpty() && !p.getSourceCode().isEmpty()) {
 			arbol = manejadorArbol.agregarArbolSLD(sessionID, p);
-			return arbol.getNodosActuales();
+			return arbol.getRaiz();
 		}
 		
 		//acá debería obtener los nodos en el fot actual y enviarlo, podría ser en un array. hasta ahí todo piola.
@@ -123,6 +123,27 @@ public class InicioController {
 	public @ResponseBody RamaTree[] getRamasCut() {
 		String session = RequestContextHolder.currentRequestAttributes().getSessionId();
 		return manejadorArbol.getArbolSLD(session).getRamasCutActuales();
+	}
+	
+	
+	@RequestMapping("/eliminarArbol")
+	public @ResponseBody void eliminarArbol() {
+		String session = RequestContextHolder.currentRequestAttributes().getSessionId();
+		manejadorArbol.eliminarArbol(session);
+	}
+	
+	@RequestMapping("/nextSolution")
+	public @ResponseBody void nextSolution() {
+		String session = RequestContextHolder.currentRequestAttributes().getSessionId();
+		ArbolSLD arbol = manejadorArbol.getArbolSLD(session);
+		//arbol.nextSolution();
+		arbol.siguienteFotograma();
+	}
+	
+	@RequestMapping("/hasMoreSolutions")
+	public @ResponseBody boolean hasMoreSolutions() {
+		String session = RequestContextHolder.currentRequestAttributes().getSessionId();
+		return manejadorArbol.getArbolSLD(session).hasMoreSolutions();
 	}
 	
 	

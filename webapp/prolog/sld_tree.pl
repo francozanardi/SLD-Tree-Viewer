@@ -500,12 +500,6 @@ esMayor(ModuleName, nodo(ID, _, _, _)):-
 	forall( (arbol(ModuleName, nodo(IDaux, _, _, _)), ID \= IDaux), IDaux < ID). %Las IDs son únicas.
 	
 eliminarArbol(ModuleName):-
-	forall(arbol(ModuleName, P), retract(arbol(ModuleName, P))),
 	retractall(arbol(ModuleName, _)),
-	retractall(datos(ModuleName, _)),
-
-	
-	assertz(datos(ModuleName, fotogramaActual(1))),
-	assertz(datos(ModuleName, ultimaID_nodo(0))),
-	assertz(datos(ModuleName, ultimaID_rama(0))).
+	retractall(datos(ModuleName, _)).
 	

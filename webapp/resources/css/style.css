@@ -39,16 +39,17 @@ html, body {
 	border-radius: 3px;
 }
 
-.node_invisible {
+/* Notemos que al poner el mismo tamaño de borde que la clase 'node' los cálculos para la altura del div son iguales */
+.nodo_invisible {
 	color: #FFFFFF;
-	border: 0px solid #FFFFFF;
-	border-radius: 0px;
+	border-color: #FFFFFF;
+	z-index: -1;
 }
 
 .node p {
 	font-size: 20px;
 	line-height: 18px;
-	height: 18px;
+	height: 25px;
 	font-weight: bold;
 	/* padding: 3px; */
 	margin: auto 4px;

@@ -59,5 +59,13 @@ public class ManejadorArbolesSLD {
 		return arboles.get(name);
 	}
 	
+	public void eliminarArbol(String name) {
+		Query q = new Query(String.format("eliminarArbol('%s')", name));
+		q.allSolutions();
+		q.close();
+		
+		arboles.remove(name);
+	}
+	
 
 }

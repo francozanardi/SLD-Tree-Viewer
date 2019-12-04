@@ -496,13 +496,7 @@ getMaxID(MaxID):-
 esMayor(nodo(ID, _, _, _)):-
 	forall( (arbol(nodo(IDaux, _, _, _)), ID \= IDaux), IDaux < ID). %Las IDs son únicas.
 	
-eliminarArbol:-
-	% forall(arbol(P), retract(arbol(P))),
-	retractall(arbol(_)),
-	retractall(datos(_)),
-
-	
-	assertz(datos(fotogramaActual(1))),
-	assertz(datos(ultimaID_nodo(0))),
-	assertz(datos(ultimaID_rama(0))).
+eliminarArbol(ModuleName):-
+	retractall(arbol(ModuleName, _)),
+	retractall(datos(ModuleName, _)).
 	
