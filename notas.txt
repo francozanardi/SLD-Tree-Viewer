@@ -61,3 +61,9 @@ Tecnologías utilizadas:
 * JPL
 * Maven (como gestor de dependencias en Java).
 
+
+
+YA SE PORQUE SE BUGUEA EL SCROLL.
+Esto sucede porque cuando damos a stop y a dibujar otro árbol, la librería borra todo lo que hay en ese sector.
+Entonces borra las barras de scroll.
+Hay que solucionar esto.

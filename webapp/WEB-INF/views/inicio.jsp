@@ -110,7 +110,6 @@ Además minimizar los archivos js utilizados, especialmente codemirror.js. Mirar 
 			<div class="form-group col-lg-6 h-100">
 				<label>SLDTree</label>
 				<div class="chart h-100" id="sldtree">
-				
 				</div>
 				
 					<div class="btn-group col-lg-12" style="margin-bottom: 15px; padding-left: 0px; padding-right: 0px;" role="group">

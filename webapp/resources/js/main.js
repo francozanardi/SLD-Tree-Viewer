@@ -20,6 +20,7 @@ window.onbeforeunload = function(event) {
 }
 
 
+
 $('#optionsButton').click(() => {
 	$('#modalOptions').modal('show');
 });
@@ -141,6 +142,8 @@ $('#program').submit(
 				})
 				.then(raiz => {
 					crearArbol(raiz);
+					
+					crearButtonFullScreen();
 				})
 			
 
@@ -247,8 +250,8 @@ function crearArbol(nodo){
 	
 	tree = new Treant(config, null, $);
 	
-	mapNodos.set(0, tree.tree.nodeDB.db[0]); 
-
+	mapNodos.set(0, tree.tree.nodeDB.db[0]);
+	
 }
 
 function graficarRamas(ramas){
@@ -300,6 +303,88 @@ function graficarRamasCut(ramas){
 	}
 }
 
+function crearButtonFullScreen(){
+	
+	//si todos son nulls entonces no está en fullscreen.
+	function isFullScreenOn() {
+		return document.fullScreenElement || document.webkitFullscreenElement || document.msFullscreenElement || document.mozFullScreenElement;
+	}
+	
+	function acomodarTree() {
+		setTimeout(function() {
+			tree.tree.redraw();
+		}, 500);
+	}
+	
+	function configExitFullScreen(){
+		
+		function exitFullScreen() {
+			if(!isFullScreenOn()){ 
+				btn.style.cssText = "display: block;";
+				
+				acomodarTree();
+			}
+		} 
+		
+		/* Standard syntax */
+		document.addEventListener("fullscreenchange", exitFullScreen);
+		/* Firefox */
+		document.addEventListener("mozfullscreenchange", exitFullScreen);
+		/* Chrome, Safari and Opera */
+		document.addEventListener("webkitfullscreenchange",  exitFullScreen);
+		/* IE / Edge */
+		document.addEventListener("msfullscreenchange",  exitFullScreen);
+		
+	}
+	
+	function addListnerToFullScreen(){
+		btn.addEventListener("click", () => {
+			btn.style.cssText = "display: none;";
+			
+			if (sld.requestFullscreen) {
+				sld.requestFullscreen();
+			} else if (sld.mozRequestFullScreen) { /* Firefox */
+				sld.mozRequestFullScreen();
+			} else if (sld.webkitRequestFullscreen) { /* Chrome, Safari & Opera */
+				sld.webkitRequestFullscreen();
+			} else if (sld.msRequestFullscreen) { /* IE/Edge */
+				sld.msRequestFullscreen();
+			}
+			
+			acomodarTree();
+		});
+	}
+	
+	function createButton(){
+		btn = document.createElement("button");
+		btn.className = "fullScreen";
+		btn.id = "fullScreenButton";
+		
+		svg = document.createElement("img");
+		svg.src = "resources/img/fullscreen.svg";
+		
+		btn.appendChild(svg);
+		
+		sld = document.getElementById("sldtree");
+		sld.appendChild(btn);
+		
+
+		$(sld).hover(() => {
+			if(!isFullScreenOn()){
+				btn.style.cssText = "display: block;";
+			}
+		}, () => {
+			btn.style.cssText = "display: none;";
+		});
+	}
+	
+	var btn, svg, sld;
+	
+	createButton();
+	addListnerToFullScreen();
+	configExitFullScreen();
+	
+}
 
 
 
