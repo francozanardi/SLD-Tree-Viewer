@@ -1,3 +1,4 @@
+var myID = null;
 var tree;
 var mapNodos = new Map(); //mapeo desde id nodo a objeto TreeNode
 var mapRamasDisponibles = new Map();
@@ -10,13 +11,21 @@ var editor = CodeMirror.fromTextArea(document.getElementById("sourceCode"), {
 	theme : "prolog"
 });
 
+window.onbeforeunload = function(event) {
+	if(myID){
+		$.post('eliminarArbol', 'id='+myID);
+		
+		event.returnValue = "";
+	}
+}
+
 
 $('#optionsButton').click(() => {
 	$('#modalOptions').modal('show');
 });
 
 $('#stopButton').click(() => {
-	$.get('eliminarArbol', () => {
+	$.post('eliminarArbol', 'id='+myID, () => {
 		document.getElementById("createButton").style.display = "block";
 		document.getElementById("optionsButton").style.display = "block";
 		document.getElementById("nextButton").style.display = "none";
@@ -29,7 +38,8 @@ $('#stopButton').click(() => {
 		
 		mapRamasDisponibles.clear();
 		mapNodos.clear();
-
+		
+		myID = null;
 	});
 });
 
@@ -37,9 +47,9 @@ $('#nextButton').click(() => {
 
 	$('#nextButton').attr("disabled", true);
 	
-	$.get('avanzarFotograma')
+	$.post('avanzarFotograma', 'id='+myID)
 	.then(fotActual => {
-		return $.get('getNodos');
+		return $.post('getNodos', 'id='+myID);
 	})
 	.then(nodos => {
 		graficarNodos(nodos);
@@ -81,22 +91,22 @@ $('#skipButton').click(() => {
 $('#nextStepButton').click(() => {
 	document.getElementById("prevStepButton").disabled = false;
 	
-	$.get('avanzarFotograma')
+	$.post('avanzarFotograma', 'id='+myID)
 		.then(fotActual => {
 			$('#mySpan').text(fotActual);
-			return $.get('getRamas');
+			return $.post('getRamas', 'id='+myID);
 		})
 		.then(ramas => {
 			console.log('ramas: ', ramas);
 			
 			graficarRamas(ramas);
-			return $.get('getRamasCut');
+			return $.post('getRamasCut', 'id='+myID);
 		})
 		.then(ramasCut => {
 			console.log('ramasCut: ', ramasCut);
 			
 			graficarRamasCut(ramasCut);
-			return $.get('getNodos');
+			return $.post('getNodos', 'id='+myID);
 		})
 		.then(nodos => {
 			console.log('nodos: ', nodos);
@@ -123,9 +133,16 @@ $('#program').submit(
 			var s = "sourceCode=" + encodeURIComponent(editor.getValue()) + "&queryProlog="
 					+ encodeURIComponent($('#queryProlog').val());
 
-			$.post('', s, (nodo => {
-				crearArbol(nodo);
-			}));
+			$.post('', s)
+				.then(id => {
+					myID = id;
+					
+					return $.post('getRaiz', 'id='+myID);
+				})
+				.then(raiz => {
+					crearArbol(raiz);
+				})
+			
 
 			document.getElementById("createButton").style.display = "none";
 			document.getElementById("optionsButton").style.display = "none";

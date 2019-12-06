@@ -1,5 +1,9 @@
 package com.gmail.francozanardi97.app.treeSLD;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -10,6 +14,7 @@ import org.jpl7.Query;
 import org.jpl7.Term;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.DigestUtils;
 
 import com.gmail.francozanardi97.app.model.ProgramaUsuario;
 
@@ -48,6 +53,23 @@ public class ManejadorArbolesSLD {
 		q.close();
 		
 	}
+	
+	private String generateNewTreeID() throws IOException {
+		String time = System.nanoTime() + "";
+		InputStream stream = new ByteArrayInputStream(time.getBytes(StandardCharsets.UTF_8));
+
+		return DigestUtils.md5DigestAsHex(stream);
+		
+	}
+	
+	public String agregarArbolSLD(ProgramaUsuario p) throws IOException {
+		String name = generateNewTreeID();
+		
+		ArbolSLD arbol = new ArbolSLD(name, servletContext.getRealPath(PATH_PROLOG_FILES + "/" + name + ".pl"), p);
+		arboles.put(name, arbol);
+		return name;
+	}
+	
 	
 	public ArbolSLD agregarArbolSLD(String name, ProgramaUsuario p) {
 		ArbolSLD arbol = new ArbolSLD(name, servletContext.getRealPath(PATH_PROLOG_FILES + "/" + name + ".pl"), p);

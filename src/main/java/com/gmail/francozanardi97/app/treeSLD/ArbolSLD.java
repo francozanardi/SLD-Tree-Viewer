@@ -44,6 +44,14 @@ public class ArbolSLD {
 	}
 	
 
+	@Override
+	protected void finalize() throws Throwable {
+		File f = new File(pathPU);
+		f.delete();
+		
+		super.finalize();
+	}
+
 	private void crearArbolSLD() {
 		cargarUserProgram();
 		createQuerySLD();
@@ -63,6 +71,8 @@ public class ArbolSLD {
 	
 	private void cargarUserProgram() {
 		File f = new File(pathPU);
+		
+
 		try {
 			FileWriter w = new FileWriter(f);
 			w.append(programaUsuario.getSourceCode());
@@ -72,29 +82,7 @@ public class ArbolSLD {
 			e.printStackTrace();
 		}
 	}
-	
-	public boolean nextSolution() {
-//		if(!queryCrearSLD.hasMoreSolutions()) {
-//			System.out.println("No hay más soluciones mostro");
-//			return false;
-//		}
-		
-//		queryCrearSLD.oneSolution();
-//		
-//		queryCrearSLD.open();
-//		queryCrearSLD.hasMoreSolutions();
-//		queryCrearSLD.nextSolution();
-//		queryCrearSLD.hasMoreSolutions();
-//		queryCrearSLD.nextSolution();
-//		System.out.println("Hay más soluciones capoide");
-		return true;
-	}
-	
-	public boolean hasMoreSolutions() {
-		return queryCrearSLD.hasMoreSolutions();
-	}
 
-	
 	public void siguienteFotograma() {
 		fotogramaActual++;
 	}
@@ -102,50 +90,16 @@ public class ArbolSLD {
 	public int getFotograma() {
 		return fotogramaActual;
 	}
-	
-	/*
-	private void crearQueryArbol() {
-		queryArbol = new Query("arbol", new Term[] {new Atom(namePU), new Variable("E")});
 		
-		for(Map<String, Term> s : queryArbol.allSolutions()) {
-			if(s.get("E").name().equals("nodo")) {
-				Term[] t = s.get("X").arg(4).toTermArray();
-				for(Term ta: t) {
-					System.out.println("Aux: " + ta.toString());
-				}
-			}
-		}
-		queryArbol.close();
-	}*/
-	
-	
-	private String toInfix(Term term) {
-		String infix = "";
-	
-		while(term.arity() == 2) {
-			infix += term.name();
-		}
-		return null;
-	}
-	
-	private String toPrefix(Term term) {
-		if(term.type() == Prolog.COMPOUND && term.arity() == 1) {
-			return term.name() + " " + term.arg(1);
-		} else {
-			if(term.type() == Prolog.COMPOUND && term.arity() == 2) {
-				return term.name() + "(" + toInfix_(term.arg(1)) + ", " + toInfix_(term.arg(2)) + ")";
-			} else {
-				return term.toString();
-			}
-		}
-	}
-	
 	
 	private String toInfix_(Term term) {
 		Query q;
 		boolean hasSolution;
 		
 		if(term.type() != Prolog.COMPOUND) {
+			if(term.type() == Prolog.ATOM) {
+				return term.name();
+			}
 			return term.toString();
 		}
 		

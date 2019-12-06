@@ -83,53 +83,63 @@ public class InicioController {
 	}
 	
 	@RequestMapping(value="/", method=RequestMethod.POST)
-	public @ResponseBody NodoTree crearSLD(@ModelAttribute ProgramaUsuario p) {
-		String sessionID = RequestContextHolder.currentRequestAttributes().getSessionId();
-		ArbolSLD arbol;
-		
-		if(p != null && !p.getQueryProlog().isEmpty() && !p.getSourceCode().isEmpty()) {
-			arbol = manejadorArbol.agregarArbolSLD(sessionID, p);
-			return arbol.getRaiz();
+	public @ResponseBody String crearSLD(@ModelAttribute ProgramaUsuario p) {
+		try {
+			if(p != null && !p.getQueryProlog().isEmpty() && !p.getSourceCode().isEmpty()) {
+				return manejadorArbol.agregarArbolSLD(p);
+			}			
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 		
-		//acá debería obtener los nodos en el fot actual y enviarlo, podría ser en un array. hasta ahí todo piola.
-		//el problema sería cuando haga un next, ya que ahi debería obtener tanto los nodos, como las ramas y las ramas cuts.
-		
-		return null;
+		return "";
 	}
 	
-	@RequestMapping("/avanzarFotograma")
-	public @ResponseBody Integer avanzarFotograma() {
-		String session = RequestContextHolder.currentRequestAttributes().getSessionId();
-		ArbolSLD arbol = manejadorArbol.getArbolSLD(session);
+	@RequestMapping(value="/getRaiz", method=RequestMethod.POST)
+	public @ResponseBody NodoTree getRaiz(@RequestParam("id") String id) {
+		ArbolSLD arbol = manejadorArbol.getArbolSLD(id);
+				
+		return arbol.getRaiz();
+	}
+	
+	@RequestMapping("/getModulos")
+	public @ResponseBody void getModulos() {
+		Query q = new Query("arbol(M, _)");
+		
+		for(Map<String, Term> m: q.allSolutions()) {
+			System.out.println("-> M = " + m.get("M").toString());
+		}
+		
+		q.close();
+	}
+	
+	@RequestMapping(value="/avanzarFotograma", method=RequestMethod.POST)
+	public @ResponseBody Integer avanzarFotograma(@RequestParam("id") String id) {
+		ArbolSLD arbol = manejadorArbol.getArbolSLD(id);
 		arbol.siguienteFotograma();
 		
 		return arbol.getFotograma();
 	}
 	
-	@RequestMapping("/getNodos")
-	public @ResponseBody NodoTree[] getNodos() {
-		String session = RequestContextHolder.currentRequestAttributes().getSessionId();
-		return manejadorArbol.getArbolSLD(session).getNodosActuales();
+	@RequestMapping(value="/getNodos", method=RequestMethod.POST)
+	public @ResponseBody NodoTree[] getNodos(@RequestParam("id") String id) {
+		return manejadorArbol.getArbolSLD(id).getNodosActuales();
 	}
 	
-	@RequestMapping("/getRamas")
-	public @ResponseBody RamaTree[] getRamas() {
-		String session = RequestContextHolder.currentRequestAttributes().getSessionId();
-		return manejadorArbol.getArbolSLD(session).getRamasActuales();
+	@RequestMapping(value="/getRamas", method=RequestMethod.POST)
+	public @ResponseBody RamaTree[] getRamas(@RequestParam("id") String id) {
+		return manejadorArbol.getArbolSLD(id).getRamasActuales();
 	}
 	
-	@RequestMapping("/getRamasCut")
-	public @ResponseBody RamaTree[] getRamasCut() {
-		String session = RequestContextHolder.currentRequestAttributes().getSessionId();
-		return manejadorArbol.getArbolSLD(session).getRamasCutActuales();
+	@RequestMapping(value="/getRamasCut", method=RequestMethod.POST)
+	public @ResponseBody RamaTree[] getRamasCut(@RequestParam("id") String id) {
+		return manejadorArbol.getArbolSLD(id).getRamasCutActuales();
 	}
 	
 	
-	@RequestMapping("/eliminarArbol")
-	public @ResponseBody void eliminarArbol() {
-		String session = RequestContextHolder.currentRequestAttributes().getSessionId();
-		manejadorArbol.eliminarArbol(session);
+	@RequestMapping(value="/eliminarArbol", method=RequestMethod.POST)
+	public @ResponseBody void eliminarArbol(@RequestParam("id") String id) {
+		manejadorArbol.eliminarArbol(id);
 	}
 	
 
