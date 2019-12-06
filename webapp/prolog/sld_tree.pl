@@ -288,9 +288,9 @@ solve((\+ A), nodo(IDPadre, _, _, [(\+ A) | RotuloRestante]), ModuleName):-
 		aumentarFotogramaActual(ModuleName)
 	).
 	
-solve(not(A), NodoPadre, ModuleName):-
+solve(not(A), nodo(IDPadre, IDAbuelo, FotPadre, [not(A) | RotuloRestante]), ModuleName):-
 	!,
-	solve((\+ A), NodoPadre, ModuleName).
+	solve((\+ A), nodo(IDPadre, IDAbuelo, FotPadre, [(\+ A) | RotuloRestante]), ModuleName).
 
 % A es UNA ÚNICA regla (o hecho) definida por el usuario donde tiene al menos una posible solución.
 solve(A, nodo(IDPadre, _, _, [A | ConjuncionesRestantes]), ModuleName):-

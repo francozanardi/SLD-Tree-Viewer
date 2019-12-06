@@ -1,0 +1,63 @@
+"'[|]'(p(3, 2), '[]')"
+
+"'[|]'(j(3), '[|]'(k(2), '[|]'(h(3, 2, 6), '[]')))"
+
+
+"'[|]'(j(3), '[|]'(k(2), '[|]'(h(3, 2, 6), [])))"
+
+
+"'[|]'(is(6, '*'(3, 2)), [])"
+
+atom_to_term("'[|]'(is(6, '*'(3, 2)), [])", E, K).
+
+"'[|]'(p(3, 2), [])"
+
+
+esPrimo(X):-
+  Y is X-1,
+  esPrimo(X, Y).
+
+esPrimo(X, 1).
+
+esPrimo(X, Y):-
+  R is X mod Y,
+  R \= 0,
+  Y_1 is Y-1,
+  esPrimo(X, Y_1).
+  
+
+
+Para obtener todos los predicados en prolog:
+current_predicate(X/_)
+
+Para obtener una lista de todos y contarlos.
+findall(X, current_predicate(X/_), Lista), length(Lista, R).
+
+
+[(arco(v2, v3, 20) \= arco(v1, _1553, _1554)), arcosAdyacentes('[]', v1, _1555), paraTodoAdyacente_sc(g([v1, v2, v3] | [arco(v1, v2, 10), arco(v2, v3, 20)]), v1, v3, [arco(v1, v2, 10), _1555], _1556)]
+
+[arcosAdyacentes('[]', v1, _1577), paraTodoAdyacente_sc(g([v1, v2, v3] | [arco(v1, v2, 10), arco(v2, v3, 20)]), v1, v3, [arco(v1, v2, 10), _1577], _1578)]
+
+
+Problemas que fui teniendo:
+* Conectar Prolog con Java => JPL.
+* Problemas para lograr el funcionamiento correcto de JPL con Spring.
+* Parsear el rótulo de los nodos.
+* La librería para graficar el árbol estaba pensada para gráficos estáticos.
+* La librería para convertir un <textarea> en un editor de código no tenía cargado el lenguaje Prolog.
+* No pensé correctamente el programa en prolog, ya que lo pensé como si lo estuviese accediendo una única persona.
+  Por lo tanto me vi obligado a modificarlo más adelante para que pueda ser usado por diferentes usuarios a la vez.
+* La decisión de cómo graficar el árbol, en un principio pensé en hacerlo con java usando librerías para hacer gráficos en SVG.
+
+
+
+Tecnologías utilizadas:
+* Codeblocks
+* Treant js
+* Spring MVC
+* Bootstrap
+* Jackson
+* JQuery
+* JPL
+* Maven (como gestor de dependencias en Java).
+

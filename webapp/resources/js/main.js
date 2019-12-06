@@ -26,11 +26,17 @@ $('#stopButton').click(() => {
 		document.getElementById("nextStepButton").style.display = "none";
 		document.getElementById("skipButton").style.display = "none";
 		document.getElementById("prevStepButton").disabled = true;
+		
+		mapRamasDisponibles.clear();
+		mapNodos.clear();
 
 	});
 });
 
 $('#nextButton').click(() => {
+
+	$('#nextButton').attr("disabled", true);
+	
 	$.get('avanzarFotograma')
 	.then(fotActual => {
 		return $.get('getNodos');
@@ -38,14 +44,17 @@ $('#nextButton').click(() => {
 	.then(nodos => {
 		graficarNodos(nodos);
 		
-		if(nodos.length == 1 && nodos[0].rotulo === "'[]'"){ //es la cláusula vacía
-			document.getElementById("nextStepButton").disabled = true;
+		if(nodos[0].rotulo === "[]" || nodos[0].rotulo === "[fail]"){ //es la cláusula vacía o falló
+			if(mapRamasDisponibles.size > 0){
+				$('#nextButton').attr("disabled", false);
+			}
+			$('#nextStepButton').attr("disabled", true);
 		} else {
-			document.getElementById("nextStepButton").disabled = false;
+			$('#nextStepButton').attr("disabled", false);
 		}
 	});
 	
-	document.getElementById("nextButton").disabled = true;
+	
 });
 
 $('#skipButton').click(() => {
@@ -94,9 +103,14 @@ $('#nextStepButton').click(() => {
 			
 			graficarNodos(nodos);
 			
-			if(nodos.length == 1 && nodos[0].rotulo === "'[]'"){ //es la cláusula vacía
+			if(nodos.length == 1 && nodos[0].rotulo === "[]"){ //es la cláusula vacía
 				document.getElementById("nextStepButton").disabled = true;
-				document.getElementById("nextButton").disabled = false;
+				
+				if(mapRamasDisponibles.size > 0){
+					document.getElementById("nextButton").disabled = false;
+				}
+			} else if(nodos.length == 1 && nodos[0].rotulo === "[fail]" && mapRamasDisponibles.size == 0){
+				document.getElementById("nextStepButton").disabled = true;
 			}
 		});
 
@@ -106,8 +120,8 @@ $('#nextStepButton').click(() => {
 $('#program').submit(
 		function(evento) {
 
-			var s = "sourceCode=" + editor.getValue() + "&queryProlog="
-					+ $('#queryProlog').val()
+			var s = "sourceCode=" + encodeURIComponent(editor.getValue()) + "&queryProlog="
+					+ encodeURIComponent($('#queryProlog').val());
 
 			$.post('', s, (nodo => {
 				crearArbol(nodo);
