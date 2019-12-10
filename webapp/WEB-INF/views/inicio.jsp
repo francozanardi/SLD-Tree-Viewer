@@ -17,7 +17,7 @@
 
 
 <!-- Evaluar la posiblidad de usar require.js para organizar las depedencias e intentar acelerar la velocidad de carga.
-Además minimizar los archivos js utilizados, especialmente codemirror.js. Mirar como swish utiliza requirejs. -->
+Ademï¿½s minimizar los archivos js utilizados, especialmente codemirror.js. Mirar como swish utiliza requirejs. -->
 <script src="${urlPublic}/codemirror/lib/codemirror.js"></script>
 <script src="${urlPublic}/codemirror/addon/edit/matchbrackets.js"></script>
 <script src="${urlPublic}/codemirror/addon/mode/simple.js"></script>
@@ -29,7 +29,7 @@ Además minimizar los archivos js utilizados, especialmente codemirror.js. Mirar 
 <link rel="stylesheet"
 	href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
 	integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
-	crossorigin="anonymous"> <!-- Al ponerlo abajo del todo pareciera que la página carga más ordenada. -->
+	crossorigin="anonymous"> <!-- Al ponerlo abajo del todo pareciera que la pï¿½gina carga mï¿½s ordenada. -->
 	
 <meta charset="ISO-8859-1">
 <title>SLD Tree Generator</title>
@@ -107,22 +107,29 @@ Además minimizar los archivos js utilizados, especialmente codemirror.js. Mirar 
 				</script>
 			</div>
 
-			<div class="form-group col-lg-6 h-100">
+			<div class="form-group col-lg-6 h-100" id="controlsAndViewTree">
 				<label>SLDTree</label>
-				<div class="chart h-100" id="sldtree">
-				</div>
-				
-					<div class="btn-group col-lg-12" style="margin-bottom: 15px; padding-left: 0px; padding-right: 0px;" role="group">
-						<button class="btn btn-primary" type="button" name="prevStep" id="prevStepButton">Prev step</button>
-						<button class="btn btn-primary" type="button" name="nextStep" id="nextStepButton">Next step</button>
-						<button class="btn btn-primary" type="button" name="skip" id="skipButton">Skip</button>
+
+				<div class="contenedorGrafico h-100" id="viewTree">
+					<div class="chart h-100" id="sldtree">
+
 					</div>
-						
-					<script>				
-						document.getElementById("prevStepButton").style.display = "none";
-						document.getElementById("nextStepButton").style.display = "none";
-						document.getElementById("skipButton").style.display = "none";
-					</script>
+
+					<button class="fullScreen" id="fullScreenButton">
+						<img src="resources/img/fullscreen.svg">
+					</button>
+				</div>
+
+				
+				<div class="btn-group col-lg-12" style="margin-bottom: 15px; padding-left: 0px; padding-right: 0px;" role="group">
+					<button class="btn btn-primary" type="button" name="nextStep" id="nextStepButton">Next step</button>
+					<button class="btn btn-primary" type="button" name="skip" id="skipButton">Skip</button>
+				</div>
+					
+				<script>				
+					document.getElementById("nextStepButton").style.display = "none";
+					document.getElementById("skipButton").style.display = "none";
+				</script>
 					
 				<span id="mySpan"></span>	
 			</div>

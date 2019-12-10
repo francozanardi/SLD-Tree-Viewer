@@ -5,6 +5,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -27,38 +28,81 @@ import com.gmail.francozanardi97.app.model.RamaTree;
 
 public class ArbolSLD {
 	
-	private Query queryCrearSLD;
 	private int fotogramaActual;
 	private String pathPU;
 	private String namePU;
 	private ProgramaUsuario programaUsuario;
 	
+	private Map<Integer, NodoTree[]> mapNodos;
+	private Map<Integer, RamaTree[]> mapRamas;
+	private Map<Integer, RamaTree[]> mapRamasCut;
+	
+	private Map<String, Term>[] valoresVariables;
+	private int solucionActual;
+	
 	public ArbolSLD(String namePU, String pathPU, ProgramaUsuario pu) {
-		fotogramaActual = 0;
+		this.fotogramaActual = 0;
 		
 		this.pathPU = pathPU;
 		this.namePU = namePU;
 		this.programaUsuario = pu;
 		
-		crearArbolSLD();
+		mapNodos = new Hashtable<Integer, NodoTree[]>();
+		mapRamas = new Hashtable<Integer, RamaTree[]>();
+		mapRamasCut = new Hashtable<Integer, RamaTree[]>();
+		
+		this.solucionActual = 0;
+		
+		init();
+		
 	}
 	
 
-	@Override
-	protected void finalize() throws Throwable {
-		File f = new File(pathPU);
-		f.delete();
+	
+	private void init() {
+		crearArbolSLD();
 		
-		super.finalize();
-	}
+		int fot = 0;
+		NodoTree[] nodos = {_getRaiz()};
+		RamaTree[] ramas = {};
+		RamaTree[] ramasCut = {};
+	
+		
+		while(nodos.length > 0 || ramas.length > 0 || ramasCut.length > 0) {
+			mapNodos.put(fot, nodos);
+			mapRamas.put(fot, ramas);
+			mapRamasCut.put(fot, ramasCut);
+			
+			fot++;
+			nodos = getNodos(fot);
+			ramas = getRamas(fot);
+			ramasCut = getRamasCut(fot);
 
+		}
+		
+		initVariables();
+		
+		close();
+		
+	}
+	
+	private void initVariables() {
+		Query q = new Query(programaUsuario.getQueryProlog());
+		valoresVariables = q.allSolutions();
+		q.close();
+		
+		Query qUnload = new Query(String.format("unload_file('%s')", pathPU.replace('\\', '/')));
+		qUnload.allSolutions();
+		qUnload.close();
+	}
+	
 	private void crearArbolSLD() {
 		cargarUserProgram();
 		createQuerySLD();
 	}
 	
 	private void createQuerySLD() {
-		queryCrearSLD = new Query(String.format("crearSLD((%s), '%s', '%s')", programaUsuario.getQueryProlog(), namePU, pathPU.replace('\\', '/')));
+		Query q = new Query(String.format("crearSLD((%s), '%s', '%s')", programaUsuario.getQueryProlog(), namePU, pathPU.replace('\\', '/')));
 //		        new Query( 
 //			            "crearSLD", 
 //			            new Term[] {new Atom(programaUsuario.getQueryProlog()), new Atom(namePU), new Atom(pathPU)} 
@@ -66,7 +110,8 @@ public class ArbolSLD {
 				
 				
 		
-		queryCrearSLD.allSolutions();
+		q.allSolutions();
+		q.close();
 	}
 	
 	private void cargarUserProgram() {
@@ -82,6 +127,16 @@ public class ArbolSLD {
 			e.printStackTrace();
 		}
 	}
+	
+	private void close() {	
+		Query q1 = new Query(String.format("eliminarArbol('%s')", namePU));
+		q1.allSolutions();
+		q1.close();
+		
+		
+		File f = new File(pathPU);
+		f.delete();
+	}
 
 	public void siguienteFotograma() {
 		fotogramaActual++;
@@ -89,6 +144,45 @@ public class ArbolSLD {
 	
 	public int getFotograma() {
 		return fotogramaActual;
+	}
+	
+	public NodoTree getRaiz() {
+		NodoTree[] r = mapNodos.get(0);
+		
+		if(r != null && r.length > 0) {
+			return r[0];
+		}
+		
+		return new NodoTree(-1, -1, "fail");
+	}
+	
+	public NodoTree[] getNodosActuales() {
+		return mapNodos.get(fotogramaActual);
+	}
+	
+	public RamaTree[] getRamasActuales() {
+		return mapRamas.get(fotogramaActual);
+	}
+	
+	public RamaTree[] getRamasCutActuales() {
+		return mapRamasCut.get(fotogramaActual);
+	}
+	
+	public NodoTree getSolucion() {
+		if(solucionActual < valoresVariables.length) {
+			Map<String, Term> solActual = valoresVariables[solucionActual++];
+			
+			String[] rot = new String[solActual.size()];
+			int i = 0;
+			for(Entry<String, Term> e: solActual.entrySet()) {
+				rot[i++] = e.getKey() + ":" + e.getValue().toString();
+			}
+			
+			return new NodoTree(-1, -1, Arrays.toString(rot));
+		}
+		
+		return new NodoTree(-1, -1, "");
+
 	}
 		
 	
@@ -170,8 +264,8 @@ public class ArbolSLD {
 		return Arrays.toString(inf);
 	}
 	
-	public NodoTree getRaiz() {
-		Query q = new Query(String.format("arbol('%s', nodo(ID, -1, %d, Rotulo))", namePU, fotogramaActual));
+	private NodoTree _getRaiz() {	
+		Query q = new Query(String.format("arbol('%s', nodo(ID, -1, %d, Rotulo))", namePU, 0));
 
 		Map<String, Term> solucion = q.oneSolution();
 		
@@ -188,8 +282,8 @@ public class ArbolSLD {
 		return raiz;
 	}
 	
-	public NodoTree[] getNodosActuales() {	
-		Query q = new Query(String.format("arbol('%s', nodo(ID, IDPadre, %d, Rotulo)), arbol('%s', rama(IDRama, _, IDPadre, ID, _))", namePU, fotogramaActual, namePU));
+	private NodoTree[] getNodos(int fotograma) {	
+		Query q = new Query(String.format("arbol('%s', nodo(ID, IDPadre, %d, Rotulo)), arbol('%s', rama(IDRama, _, IDPadre, ID, _))", namePU, fotograma, namePU));
 		
 		
 		Map<String, Term>[] soluciones = q.allSolutions();
@@ -208,8 +302,8 @@ public class ArbolSLD {
 		return nodos;
 	}
 	
-	public RamaTree[] getRamasActuales() {	
-		Query q = new Query(String.format("arbol('%s', rama(ID, %d, NodoP, NodoH, _))", namePU, fotogramaActual));
+	private RamaTree[] getRamas(int fotograma) {	
+		Query q = new Query(String.format("arbol('%s', rama(ID, %d, NodoP, NodoH, _))", namePU, fotograma));
 			
 		Map<String, Term>[] soluciones = q.allSolutions();
 		RamaTree[] ramas = new RamaTree[soluciones.length];
@@ -227,8 +321,8 @@ public class ArbolSLD {
 		return ramas;
 	}
 	
-	public RamaTree[] getRamasCutActuales() {	
-		Query q = new Query(String.format("arbol('%s', rama(ID, _, NodoP, NodoH, %d))", namePU, fotogramaActual));
+	private RamaTree[] getRamasCut(int fotograma) {	
+		Query q = new Query(String.format("arbol('%s', rama(ID, _, NodoP, NodoH, %d))", namePU, fotograma));
 		
 		
 		Map<String, Term>[] soluciones = q.allSolutions();
@@ -246,12 +340,5 @@ public class ArbolSLD {
 		
 		return ramas;
 	}
-	
-//	public void eliminarArbol() {
-//		Query q = new Query(String.format("eliminarArbol('%s')", namePU));
-//		q.allSolutions();
-//		q.close();
-//	}
-//	
-	
+		
 }

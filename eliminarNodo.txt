@@ -1,0 +1,5 @@
+Eliminar nodo:
+-> Borrar el nodeDOM de nodo. (nodo.nodeDOM.remove())
+-> Sacarlo de tree.nodeDB. (treant.tree.nodeDB.db...)
+-> Sacarlo de nodo.parent.children. (treant.tree.nodeDB.db.get(nodo.parentId))
+-> Sacar la rama del connectionStore y removerla. (treant.tree.connectionStore[i].remove(), delete treant.tree.connectionStore[i])

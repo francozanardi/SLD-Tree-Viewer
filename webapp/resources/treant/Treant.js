@@ -446,6 +446,22 @@
          * @returns {Tree}
          */
         this.reload = function() {
+			if ( this.CONFIG.scrollbar === 'fancy') {
+				
+				/* agregado para solucionar el bug del scroll bar perfect al reiniciar el árbol */
+				while(this.drawArea.firstChild) {
+					this.drawArea.removeChild(this.drawArea.firstChild);
+				}
+
+				var jq_drawArea = $(this.drawArea);
+
+				jq_drawArea.removeClass("Treant");
+				jq_drawArea.removeClass("Treant-loaded");
+				jq_drawArea.removeClass("ps-container");
+				
+				jq_drawArea.perfectScrollbar('destroy');
+			}
+			
             this.reset( this.initJsonConfig, this.initTreeId ).redraw();
             return this;
         };
@@ -839,7 +855,7 @@
                 viewHeight = (treeHeight < this.drawArea.clientHeight) ? this.drawArea.clientHeight : treeHeight + this.CONFIG.padding*2;
 
             this._R.setSize( viewWidth, viewHeight );
-
+			
             if ( this.CONFIG.scrollbar === 'resize') {
                 UTIL.setDimensions( this.drawArea, viewWidth, viewHeight );
             }
@@ -856,24 +872,25 @@
             // Fancy scrollbar relies heavily on jQuery, so guarding with if ( $ )
             else if ( this.CONFIG.scrollbar === 'fancy') {
                 var jq_drawArea = $( this.drawArea );
+				
                 if (jq_drawArea.hasClass('ps-container')) { // znaci da je 'fancy' vec inicijaliziran, treba updateat
-                    jq_drawArea.find('.Treant').css({
+					jq_drawArea.find('.Treant').css({
                         width: viewWidth,
                         height: viewHeight
                     });
 
-                    jq_drawArea.perfectScrollbar('update');
+					jq_drawArea.perfectScrollbar('update');	
                 }
                 else {
                     var mainContainer = jq_drawArea.wrapInner('<div class="Treant"/>'),
                         child = mainContainer.find('.Treant');
-
+					
                     child.css({
                         width: viewWidth,
                         height: viewHeight
                     });
 
-                    mainContainer.perfectScrollbar();
+					mainContainer.perfectScrollbar();
                 }
             } // else this.CONFIG.scrollbar == 'None'
 
@@ -1827,10 +1844,13 @@
             else {
                 // todo: fix flashy bug when a node is manually hidden and tree.redraw is called.
                 if ( $ ) {
+					var self = this;
+					self.getTree().animacionesEnCurso++;
                     $( this.nodeDOM ).animate(
                         oNewState, config.animation.nodeSpeed, config.animation.nodeAnimation,
                         function () {
                             this.style.visibility = 'hidden';
+							self.getTree().animacionesEnCurso--;
                         }
                     );
                 }
@@ -1893,12 +1913,15 @@
 
             // if the node was hidden, update opacity and position
             if ( $ ) {
+				var self = this;
+				self.getTree().animacionesEnCurso++;
                 $( this.nodeDOM ).animate(
                     oNewState,
                     config.animation.nodeSpeed, config.animation.nodeAnimation,
                     function () {
                         // $.animate applies "overflow:hidden" to the node, remove it to avoid visual problems
                         this.style.overflow = "";
+						self.getTree().animacionesEnCurso--;
                     }
                 );
             }

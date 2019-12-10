@@ -1,15 +1,98 @@
 var myID = null;
-var tree;
+var treant = null;
 var mapNodos = new Map(); //mapeo desde id nodo a objeto TreeNode
 var mapRamasDisponibles = new Map();
 //mapeo que contiene solo las ramas sin nodos hijos,
 //es decir el mapeo va desde id rama a objeto TreeNode, el cual es un nodo invisible.
+
+const SPEED_ANIMATION = 500;
+
+var configTreeDefault = {
+	chart: {
+		container: "#sldtree",
+		scrollbar: "fancy",
+		//animateOnInit: true,
+		
+		animation: {
+			nodeAnimation: "easeOutBounce",
+			nodeSpeed: SPEED_ANIMATION,
+			connectorsAnimation: "bounce",
+			connectorsSpeed: SPEED_ANIMATION
+		},
+		
+		callback: {		
+			onCreateNode: function(newNode, newNodeDOM) {
+				var redraw = false;
+				var esperando = false;
+				
+				$(newNodeDOM.querySelector('p.node-name')).hover(function () {
+					var self = this;
+					esperando = true;	
+					
+					setTimeout(function() {
+						if(esperando){
+							var wOrig = $(self).outerWidth();
+							
+							$(self).css({'overflow' : 'visible'});
+							$(self).css({'max-width' : 'fit-content'});
+							
+							if($(self).width() > wOrig){
+								newNode.width = $(self).outerWidth();
+								newNode.getTree().redraw();
+								redraw = true;
+							}
+							
+							esperando = false;
+						}
+					}, Math.max(newNode.getTree().CONFIG.animation.nodeSpeed, newNode.getTree().CONFIG.animation.connectorsSpeed));
+						
+
+				}, function () {
+					if(!esperando){
+						$(this).css({'overflow' : 'hidden'});
+						$(this).css({'max-width' : '100px'});
+						
+						if(redraw){
+							newNode.width = $(this).outerWidth();
+							newNode.getTree().redraw();
+							redraw = false;
+						}
+						
+						hayCambios = false;
+					}
+					
+					esperando = false;
+				});
+			},
+	
+		},
+		
+		connectors: {
+			type: 'straight'
+		},
+		
+		node: {
+			collapsable: false
+		},
+		
+	},
+	
+	nodeStructure: {
+			text: {
+				name: ''
+			},
+			HTMLid: ''
+	}
+	
+};
 
 var editor = CodeMirror.fromTextArea(document.getElementById("sourceCode"), {
 	lineNumbers : true,
 	matchBrackets : true,
 	theme : "prolog"
 });
+
+
 
 window.onbeforeunload = function(event) {
 	if(myID){
@@ -32,10 +115,8 @@ $('#stopButton').click(() => {
 		document.getElementById("nextButton").style.display = "none";
 		document.getElementById("stopButton").style.display = "none";
 
-		document.getElementById("prevStepButton").style.display = "none";
 		document.getElementById("nextStepButton").style.display = "none";
 		document.getElementById("skipButton").style.display = "none";
-		document.getElementById("prevStepButton").disabled = true;
 		
 		mapRamasDisponibles.clear();
 		mapNodos.clear();
@@ -55,13 +136,16 @@ $('#nextButton').click(() => {
 	.then(nodos => {
 		graficarNodos(nodos);
 		
-		if(nodos[0].rotulo === "[]" || nodos[0].rotulo === "[fail]"){ //es la cláusula vacía o falló
+		if(nodos[0].rotulo === "[]"){ //es la cláusula vacía
 			if(mapRamasDisponibles.size > 0){
 				$('#nextButton').attr("disabled", false);
 			}
-			$('#nextStepButton').attr("disabled", true);
+			desactivarControlesNext();
+			agregarSolucion(nodos[0]);
+		} else if(nodos[0].rotulo === "[fail]" && mapRamasDisponibles.size == 0){
+			desactivarControlesNext();
 		} else {
-			$('#nextStepButton').attr("disabled", false);
+			activarControlesNext();
 		}
 	});
 	
@@ -69,62 +153,60 @@ $('#nextButton').click(() => {
 });
 
 $('#skipButton').click(() => {
-	var elem = document.getElementById('sldtree');
-	
-	if (elem.requestFullscreen) {
-		elem.requestFullscreen();
-	} else if (elem.mozRequestFullScreen) { /* Firefox */
-		elem.mozRequestFullScreen();
-	} else if (elem.webkitRequestFullscreen) { /* Chrome, Safari & Opera */
-		elem.webkitRequestFullscreen();
-	} else if (elem.msRequestFullscreen) { /* IE/Edge */
-		elem.msRequestFullscreen();
-	}
-	
-	setTimeout(function() {
-		tree.tree.redraw();
-	}, 500);
-	
+	treant.tree.CONFIG.animation.connectorsSpeed = 0;
+	treant.tree.CONFIG.animation.nodeSpeed = 0;
+
+	nextFotograma((nodos) => {
+		treant.tree.CONFIG.animation.connectorsSpeed = SPEED_ANIMATION;
+		treant.tree.CONFIG.animation.nodeSpeed = SPEED_ANIMATION;
+
+		if(nodos.length == 1 && nodos[0].rotulo === "[]"){ //es la cláusula vacía
+			desactivarControlesNext();
+			agregarSolucion(nodos[0]);
+			
+			if(mapRamasDisponibles.size > 0){
+				document.getElementById("nextButton").disabled = false;
+			}
+		} else if(nodos.length == 1 && nodos[0].rotulo === "[fail]" && mapRamasDisponibles.size == 0){
+			desactivarControlesNext();
+		}
+	});
+
 });
 
 
 
 $('#nextStepButton').click(() => {
-	document.getElementById("prevStepButton").disabled = false;
-	
-	$.post('avanzarFotograma', 'id='+myID)
-		.then(fotActual => {
-			$('#mySpan').text(fotActual);
-			return $.post('getRamas', 'id='+myID);
-		})
-		.then(ramas => {
-			console.log('ramas: ', ramas);
-			
-			graficarRamas(ramas);
-			return $.post('getRamasCut', 'id='+myID);
-		})
-		.then(ramasCut => {
-			console.log('ramasCut: ', ramasCut);
-			
-			graficarRamasCut(ramasCut);
-			return $.post('getNodos', 'id='+myID);
-		})
-		.then(nodos => {
-			console.log('nodos: ', nodos);
-			
-			graficarNodos(nodos);
-			
-			if(nodos.length == 1 && nodos[0].rotulo === "[]"){ //es la cláusula vacía
-				document.getElementById("nextStepButton").disabled = true;
-				
-				if(mapRamasDisponibles.size > 0){
-					document.getElementById("nextButton").disabled = false;
-				}
-			} else if(nodos.length == 1 && nodos[0].rotulo === "[fail]" && mapRamasDisponibles.size == 0){
-				document.getElementById("nextStepButton").disabled = true;
-			}
-		});
+	desactivarControlesNext();
 
+	nextFotograma((nodos) => {
+		var interval = setInterval(function() {
+			let seDesactivaronControles = false;
+
+			if(treant.tree.animacionesEnCurso == 0){
+				if(nodos.length == 1 && nodos[0].rotulo === "[]"){ //es la cláusula vacía
+					desactivarControlesNext();
+					seDesactivaronControles = true;
+					agregarSolucion(nodos[0]);
+					
+					if(mapRamasDisponibles.size > 0){
+						document.getElementById("nextButton").disabled = false;
+					}
+				} else if(nodos.length == 1 && nodos[0].rotulo === "[fail]" && mapRamasDisponibles.size == 0){
+					desactivarControlesNext();
+					seDesactivaronControles = true;
+				}
+
+				if(!seDesactivaronControles){
+					activarControlesNext();
+				}
+				
+				clearInterval(interval);
+			}
+
+
+		}, 100);
+	});
 });
 
 
@@ -143,7 +225,7 @@ $('#program').submit(
 				.then(raiz => {
 					crearArbol(raiz);
 					
-					crearButtonFullScreen();
+					configButtonFullScreen();
 				})
 			
 
@@ -152,13 +234,12 @@ $('#program').submit(
 			document.getElementById("nextButton").style.display = "block";
 			document.getElementById("stopButton").style.display = "block";
 
-			document.getElementById("prevStepButton").style.display = "block";
 			document.getElementById("nextStepButton").style.display = "block";
 			document.getElementById("skipButton").style.display = "block";
 			
-			document.getElementById("prevStepButton").disabled = true;
 			document.getElementById("nextButton").disabled = true;
 			document.getElementById("nextStepButton").disabled = false;
+			document.getElementById("skipButton").disabled = false;
 			
 
 			evento.preventDefault();
@@ -166,91 +247,72 @@ $('#program').submit(
 );
 
 
+function agregarSolucion(nodo){
+	var solucion;
+	
+	$.post('getSolucion', 'id='+myID, (solucion) => {
+		
+		if(solucion.rotulo !== "" && solucion.rotulo !== "[]"){
+			var nodoSolucion = {
+					text: {
+						name: solucion.rotulo
+					}
+			};
+			
+			treant.tree.addNode(mapNodos.get(nodo.id), nodoSolucion);
+		}
+
+	});
+	
+
+}
+
+
+function nextFotograma(callback){
+	$.post('avanzarFotograma', 'id='+myID)
+	.then(fotActual => {
+		$('#mySpan').text(fotActual);
+		return $.post('getRamas', 'id='+myID);
+	})
+	.then(ramas => {
+		console.log('ramas: ', ramas);
+		
+		graficarRamas(ramas);
+		return $.post('getRamasCut', 'id='+myID);
+	})
+	.then(ramasCut => {
+		console.log('ramasCut: ', ramasCut);
+		
+		graficarRamasCut(ramasCut);
+		return $.post('getNodos', 'id='+myID);
+	})
+	.then(nodos => {
+		console.log('nodos: ', nodos);
+		
+		graficarNodos(nodos);
+
+		if(callback && typeof(callback) === "function"){
+			callback(nodos);
+		}
+	});
+
+
+}
+
 function crearArbol(nodo){
 	console.log('nodo.rotulo: ', nodo.rotulo);
 	
-	var config = {
-			chart: {
-				container: "#sldtree",
-				scrollbar: "fancy",
-				//animateOnInit: true,
-				
-				animation: {
-					nodeAnimation: "easeOutBounce",
-					nodeSpeed: 700,
-					connectorsAnimation: "bounce",
-					connectorsSpeed: 700
-				},
-				
-				callback: {		
-					onCreateNode: function(newNode, newNodeDOM) {
-						var redraw = false;
-						var esperando = false;
-						
-						$(newNodeDOM.querySelector('p.node-name')).hover(function () {
-							var self = this;
-							esperando = true;	
-							
-							setTimeout(function() {
-								if(esperando){
-									var wOrig = $(self).outerWidth();
-									
-									$(self).css({'overflow' : 'visible'});
-									$(self).css({'max-width' : 'fit-content'});
-									
-									if($(self).width() > wOrig){
-										newNode.width = $(self).outerWidth();
-										newNode.getTree().redraw();
-										redraw = true;
-									}
-									
-									esperando = false;
-								}
-							}, Math.max(newNode.getTree().CONFIG.animation.nodeSpeed, newNode.getTree().CONFIG.animation.connectorsSpeed));
-								
+	configTreeDefault.nodeStructure.text.name = nodo.rotulo;
+	configTreeDefault.nodeStructure.HTMLid = 'nodo_' + nodo.id;
+	
+	if(treant){
+		//treant.tree.initJsonConfig = configTreeDefault; no es necesario, dado que comparten referencias.
+		treant.tree.reload();
+	} else {
+		treant = new Treant(configTreeDefault, null, $);
+	}
 
-						}, function () {
-							if(!esperando){
-								$(this).css({'overflow' : 'hidden'});
-								$(this).css({'max-width' : '100px'});
-								
-								if(redraw){
-									newNode.width = $(this).outerWidth();
-									newNode.getTree().redraw();
-									redraw = false;
-								}
-								
-								hayCambios = false;
-							}
-							
-							esperando = false;
-						});
-					},
-			
-				},
-				
-				connectors: {
-					type: 'straight'
-				},
-				
-				node: {
-					collapsable: false
-				},
-				
-			},
-			
-			nodeStructure: {
-					text: {
-						name: nodo.rotulo
-					},
-					HTMLid: 'nodo_' + nodo.id
-			}
-			
-		};
-	
-	tree = new Treant(config, null, $);
-	
-	mapNodos.set(0, tree.tree.nodeDB.db[0]);
+	mapNodos.set(0, treant.tree.nodeDB.db[0]);
 	
 }
 
@@ -266,7 +328,7 @@ function graficarRamas(ramas){
 				HTMLid: "rama_" + rama.id
 		};
 				
-		let nuevoNodoInvisible = tree.tree.addNode(mapNodos.get(rama.padre), nodeInvisible);
+		let nuevoNodoInvisible = treant.tree.addNode(mapNodos.get(rama.padre), nodeInvisible);
 		
 		mapRamasDisponibles.set(rama.id, nuevoNodoInvisible);
 	}
@@ -278,7 +340,8 @@ function graficarNodos(nodos){
 		
 		let nodoInvisible = mapRamasDisponibles.get(nodo.idRama);
 		
-		$(nodoInvisible.nodeDOM).removeClass('nodo_invisible'); //todo: hay que cambiar el htmlID al que corresponda
+		nodoInvisible.nodeDOM.id = "nodo_" + nodo.id;
+		$(nodoInvisible.nodeDOM).removeClass('nodo_invisible');
 		/*
 		 * La siguiente instrucción se debe a que el quitarle la clase 'nodo_invisible' puede modificar la altura del 'div'
 		 * (si se agregase borde al remover esta clase, por ejemplo).
@@ -303,7 +366,7 @@ function graficarRamasCut(ramas){
 	}
 }
 
-function crearButtonFullScreen(){
+function configButtonFullScreen(){
 	
 	//si todos son nulls entonces no está en fullscreen.
 	function isFullScreenOn() {
@@ -312,7 +375,7 @@ function crearButtonFullScreen(){
 	
 	function acomodarTree() {
 		setTimeout(function() {
-			tree.tree.redraw();
+			treant.tree.redraw();
 		}, 500);
 	}
 	
@@ -321,7 +384,7 @@ function crearButtonFullScreen(){
 		function exitFullScreen() {
 			if(!isFullScreenOn()){ 
 				btn.style.cssText = "display: block;";
-				
+				viewTree.style.cssText = "height: 100%!important;";
 				acomodarTree();
 			}
 		} 
@@ -340,36 +403,27 @@ function crearButtonFullScreen(){
 	function addListnerToFullScreen(){
 		btn.addEventListener("click", () => {
 			btn.style.cssText = "display: none;";
+
+			viewTree.style.cssText = "height: 90%!important;";
+
+			var controlsAndView = document.getElementById('controlsAndViewTree');
 			
-			if (sld.requestFullscreen) {
-				sld.requestFullscreen();
-			} else if (sld.mozRequestFullScreen) { /* Firefox */
-				sld.mozRequestFullScreen();
-			} else if (sld.webkitRequestFullscreen) { /* Chrome, Safari & Opera */
-				sld.webkitRequestFullscreen();
-			} else if (sld.msRequestFullscreen) { /* IE/Edge */
-				sld.msRequestFullscreen();
+			if (controlsAndView.requestFullscreen) {
+				controlsAndView.requestFullscreen();
+			} else if (controlsAndView.mozRequestFullScreen) { /* Firefox */
+				controlsAndView.mozRequestFullScreen();
+			} else if (controlsAndView.webkitRequestFullscreen) { /* Chrome, Safari & Opera */
+				controlsAndView.webkitRequestFullscreen();
+			} else if (controlsAndView.msRequestFullscreen) { /* IE/Edge */
+				controlsAndView.msRequestFullscreen();
 			}
 			
 			acomodarTree();
 		});
 	}
 	
-	function createButton(){
-		btn = document.createElement("button");
-		btn.className = "fullScreen";
-		btn.id = "fullScreenButton";
-		
-		svg = document.createElement("img");
-		svg.src = "resources/img/fullscreen.svg";
-		
-		btn.appendChild(svg);
-		
-		sld = document.getElementById("sldtree");
-		sld.appendChild(btn);
-		
-
-		$(sld).hover(() => {
+	function configHover(){
+		$(viewTree).hover(() => {
 			if(!isFullScreenOn()){
 				btn.style.cssText = "display: block;";
 			}
@@ -378,15 +432,26 @@ function crearButtonFullScreen(){
 		});
 	}
 	
-	var btn, svg, sld;
+	var btn, viewTree;
+
+	btn = document.getElementById('fullScreenButton');
+	viewTree = document.getElementById('viewTree');
 	
-	createButton();
+	configHover();
 	addListnerToFullScreen();
 	configExitFullScreen();
 	
 }
 
+function activarControlesNext(){
+	$('#nextStepButton').attr("disabled", false);
+	$('#skipButton').attr("disabled", false);
+}
 
+function desactivarControlesNext(){
+	$('#nextStepButton').attr("disabled", true);
+	$('#skipButton').attr("disabled", true);
+}
 
 
 //t.tree.addNode(nodoPadre, nuevoNodo);

@@ -96,11 +96,11 @@ getCantidadCuts(F, C):-
 		F = (A , B);
 		F = (A ; B);
 		F = (A -> B);
-		F = (A | B);
-		F = (A *-> B)
+		F = (A | B)
 	),
 	% Solo me interesa distinguir los predicados que reconoce el programa, es decir,
 	% aquellos que son built-in y son simulados, si el programa no lo reconociera, entonces no me interesa ver los cuts que contiene.
+	% el caso del 'not' es distinto, ya que los cuts que contenga como argumento en el momento previo a una llamada, no me interesa contarlos. 
 
 	% ejemplo: 	Si el programa no reconciece el predicado ->/2 entonces no me interesaría contar los cuts en sus parámetros.
 	%			Por lo cual, en este ejemplo, (true -> 0=0, !, fail), tendría 0 cuts.
@@ -231,9 +231,9 @@ solve((A; B), nodo(IDPadre, _, _, [(A; B) | RotuloRestante]), ModuleName):-
 	).
 	
 
-solve((A | B), Nodo, ModuleName):-
+solve((A | B), nodo(IDPadre, IDAbuelo, FotPadre, [(A | B) | RotuloRestante]), ModuleName):-
 	!,
-	solve((A ; B), Nodo, ModuleName).
+	solve((A ; B), nodo(IDPadre, IDAbuelo, FotPadre, [(A ; B) | RotuloRestante]), ModuleName).
 
 % Resuelve sentencia If - then ( IF -> THEN) utilizando la definición de swipl.
 % De esta manera se hace visible su desarrollo en el árbol.
@@ -252,6 +252,7 @@ solve((A -> B), nodo(IDPadre, _, _, [(A -> B) | RotuloRestante]), ModuleName):-
 % En este caso tenemos una conjunción de reglas (o hechos), por lo tanto accesamos a cada uno.
 solve((A, B), NodoPadre, ModuleName):-
 	!,
+	
     solve(A, NodoPadre, ModuleName),
 	
 	% Aquí tomamos el nodo con mayor ID ya que, A podría haber sido una regla y tomar muchos nodos para solucionarse.
@@ -269,7 +270,7 @@ solve((\+ A), nodo(IDPadre, _, _, [(\+ A) | RotuloRestante]), ModuleName):-
 	(
 		conjuncionesALista((A, !, fail), Conjunciones),
 		append(Conjunciones, RotuloRestante, Rotulo),
-		
+
 		agregarNodo(ModuleName, Rotulo, IDPadre, NodoAgregado),
 		NodoAgregado = nodo(ID, _, _, _),
 		cambiarHijoRama(ModuleName, RamaA, ID),
@@ -457,12 +458,17 @@ crearSLD(A, ModuleName, Path):-
 	assertz(arbol(ModuleName, nodo(0, -1, 0, Rotulo))), % Agregamos la raiz del árbol en el fotograma 0.
 	solve(A, nodo(0, -1, 0, Rotulo), ModuleName).
 	% findall(ElementoArbol, (arbol(ElementoArbol), writeln(ElementoArbol)), Lista).
+	
+	%unload_file(Path).
 
 
 
-conjuncionesALista((A, B), [A | As]):-
+conjuncionesALista((A, B), L):-
 	!,
-	conjuncionesALista(B, As).
+	conjuncionesALista(A, As),
+	conjuncionesALista(B, Bs),
+	append(As, Bs, L).
+	
 	
 conjuncionesALista(A, [A]).
 

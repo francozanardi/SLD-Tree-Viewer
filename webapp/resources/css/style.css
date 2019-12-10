@@ -22,6 +22,12 @@ html, body {
 	display: none;
 } */
 
+.contenedorGrafico {
+	margin-top: 0px;
+	margin-bottom: 10px;
+	position: relative;
+}
+
 .chart {
 /* 	height: 159px;
 	width: 332px; */
@@ -30,8 +36,7 @@ html, body {
 	position: relative;
 	border: 1px solid #ced4da;
     border-radius: .25rem;
-    margin-top: 0px;
-    margin-bottom: 10px;
+	margin: 0px;
 }
 
 .node {
@@ -40,7 +45,7 @@ html, body {
 	border-radius: 3px;
 }
 
-/* Notemos que al poner el mismo tamaño de borde que la clase 'node' los cálculos para la altura del div son iguales */
+/* Notemos que al poner el mismo tamaï¿½o de borde que la clase 'node' los cï¿½lculos para la altura del div son iguales */
 .nodo_invisible {
 	color: #FFFFFF;
 	border-color: #FFFFFF;
@@ -72,10 +77,10 @@ html, body {
 	background-color: white;
 	border: none;
 	position: absolute;
-	right:    0;
-	bottom:   0;
+	left:    0;
+	top:   0;
 	padding: 0px;
-	margin: 15px;
+    margin: 2px 5px;
 	z-index: 99;
 	
 	display: none;

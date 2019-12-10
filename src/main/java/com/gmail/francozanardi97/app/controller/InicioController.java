@@ -95,6 +95,13 @@ public class InicioController {
 		return "";
 	}
 	
+	@RequestMapping(value="/getSolucion", method=RequestMethod.POST)
+	public @ResponseBody NodoTree getSolucion(@RequestParam("id") String id) {
+		ArbolSLD arbol = manejadorArbol.getArbolSLD(id);
+				
+		return arbol.getSolucion();
+	}
+	
 	@RequestMapping(value="/getRaiz", method=RequestMethod.POST)
 	public @ResponseBody NodoTree getRaiz(@RequestParam("id") String id) {
 		ArbolSLD arbol = manejadorArbol.getArbolSLD(id);

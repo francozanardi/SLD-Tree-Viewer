@@ -65,15 +65,27 @@ public class ManejadorArbolesSLD {
 	public String agregarArbolSLD(ProgramaUsuario p) throws IOException {
 		String name = generateNewTreeID();
 		
-		ArbolSLD arbol = new ArbolSLD(name, servletContext.getRealPath(PATH_PROLOG_FILES + "/" + name + ".pl"), p);
+		ArbolSLD arbol = new ArbolSLD	(
+											name,
+											servletContext.getRealPath(PATH_PROLOG_FILES + "/" + name + ".pl"),
+											p
+										);
+		
 		arboles.put(name, arbol);
+
 		return name;
 	}
 	
 	
 	public ArbolSLD agregarArbolSLD(String name, ProgramaUsuario p) {
-		ArbolSLD arbol = new ArbolSLD(name, servletContext.getRealPath(PATH_PROLOG_FILES + "/" + name + ".pl"), p);
+		ArbolSLD arbol = new ArbolSLD	(
+											name,
+											servletContext.getRealPath(PATH_PROLOG_FILES + "/" + name + ".pl"),
+											p
+										);
+		
 		arboles.put(name, arbol);
+
 		return arbol;
 	}
 	
@@ -82,11 +94,8 @@ public class ManejadorArbolesSLD {
 	}
 	
 	public void eliminarArbol(String name) {
-		Query q = new Query(String.format("eliminarArbol('%s')", name));
-		q.allSolutions();
-		q.close();
-		
 		arboles.remove(name);
+
 	}
 	
 

@@ -1,6 +1,4 @@
-:- module(sourceUser, []).
-
-a:- b, d.
+﻿a:- b, d.
 a:- c, b.
 d:- c, e.
 %e:- fail. para hacerlo funcionar tengo que en la consola hacer assertz(e) y después retract(e).
@@ -8,15 +6,16 @@ c.
 b.
 
 
-p(X):-
+p(X, Y):-
+	Y = 0,
 	X > 0,
 	q(X).
 	
-p(X):-
+p(X, Y):-
 	\+(X > 0),
 	r(X).
 
-p(X). %Alternativa que siempre se cumple
+p(X, Y). %Alternativa que siempre se cumple
 	
 q(X):-
 	0 = 0,
