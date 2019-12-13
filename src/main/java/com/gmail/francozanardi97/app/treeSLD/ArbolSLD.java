@@ -10,10 +10,18 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.jpl7.Atom;
 import org.jpl7.Compound;
 import org.jpl7.JPLException;
+import org.jpl7.PrologException;
 import org.jpl7.Util;
 import org.jpl7.Query;
 import org.jpl7.Term;
@@ -40,7 +48,9 @@ public class ArbolSLD {
 	private Map<String, Term>[] valoresVariables;
 	private int solucionActual;
 	
-	public ArbolSLD(String namePU, String pathPU, ProgramaUsuario pu) {
+	private final static int TIMEOUT_QUERY = 9;
+	
+	public ArbolSLD(String namePU, String pathPU, ProgramaUsuario pu) throws Throwable {
 		this.fotogramaActual = 0;
 		
 		this.pathPU = pathPU;
@@ -59,58 +69,86 @@ public class ArbolSLD {
 	
 
 	
-	private void init() {
-		crearArbolSLD();
-		
-		int fot = 0;
-		NodoTree[] nodos = {_getRaiz()};
-		RamaTree[] ramas = {};
-		RamaTree[] ramasCut = {};
-	
-		
-		while(nodos.length > 0 || ramas.length > 0 || ramasCut.length > 0) {
-			mapNodos.put(fot, nodos);
-			mapRamas.put(fot, ramas);
-			mapRamasCut.put(fot, ramasCut);
+	private void init() throws Throwable {
+		try {
+			crearArbolSLD();
+			initVariables();
 			
-			fot++;
-			nodos = getNodos(fot);
-			ramas = getRamas(fot);
-			ramasCut = getRamasCut(fot);
+			int fot = 0;
+			NodoTree[] nodos = {_getRaiz()};
+			RamaTree[] ramas = {};
+			RamaTree[] ramasCut = {};
+		
+			
+			while(nodos.length > 0 || ramas.length > 0 || ramasCut.length > 0) {
+				mapNodos.put(fot, nodos);
+				mapRamas.put(fot, ramas);
+				mapRamasCut.put(fot, ramasCut);
+				
+				fot++;
+				nodos = getNodos(fot);
+				ramas = getRamas(fot);
+				ramasCut = getRamasCut(fot);
 
+			}
+			
+		} catch(PrologException e) {
+			System.out.println("Prolog Error -> " + e.getMessage());
+			throw e;
+		} finally {
+			close();
 		}
+
 		
-		initVariables();
 		
-		close();
 		
 	}
 	
 	private void initVariables() {
-		Query q = new Query(programaUsuario.getQueryProlog());
-		valoresVariables = q.allSolutions();
-		q.close();
-		
-		Query qUnload = new Query(String.format("unload_file('%s')", pathPU.replace('\\', '/')));
-		qUnload.allSolutions();
-		qUnload.close();
+		try {
+			Query q = new Query(programaUsuario.getQueryProlog());
+			valoresVariables = q.allSolutions();
+			q.close();
+		} catch(PrologException e) {
+			
+		}
+
 	}
 	
-	private void crearArbolSLD() {
+	private void crearArbolSLD() throws Throwable {
 		cargarUserProgram();
 		createQuerySLD();
 	}
 	
-	private void createQuerySLD() {
+	private void createQuerySLD() throws Throwable {
 		Query q = new Query(String.format("crearSLD((%s), '%s', '%s')", programaUsuario.getQueryProlog(), namePU, pathPU.replace('\\', '/')));
-//		        new Query( 
-//			            "crearSLD", 
-//			            new Term[] {new Atom(programaUsuario.getQueryProlog()), new Atom(namePU), new Atom(pathPU)} 
-//			        );
+
 				
-				
+		ExecutorService executor = Executors.newCachedThreadPool();
+		Callable<Void> task = new Callable<Void>() {
+			
+			@Override
+			public Void call() {
+				q.allSolutions();
+				return null;
+			}
+		};
+		Future<Void> future = executor.submit(task);
+		try {
+		   future.get(TIMEOUT_QUERY, TimeUnit.SECONDS); 
+		} catch (TimeoutException ex) {
+			close();
+		   throw new JPLException("Timeout");
+		} catch (InterruptedException e) {
+			close();
+			throw new JPLException("Execution interrumped");
+		} catch (ExecutionException e) {
+			close();
+			throw e.getCause();
+		} finally {
+		   future.cancel(true); // may or may not desire this
+		}
 		
-		q.allSolutions();
 		q.close();
 	}
 	
@@ -128,12 +166,16 @@ public class ArbolSLD {
 		}
 	}
 	
-	private void close() {	
+	private void close() {
+		Query qUnload = new Query(String.format("unload_file('%s')", pathPU.replace('\\', '/')));
+		qUnload.allSolutions();
+		qUnload.close();
+
 		Query q1 = new Query(String.format("eliminarArbol('%s')", namePU));
 		q1.allSolutions();
 		q1.close();
 		
-		
+
 		File f = new File(pathPU);
 		f.delete();
 	}
@@ -157,7 +199,7 @@ public class ArbolSLD {
 			return r[0];
 		}
 		
-		return new NodoTree(-1, -1, "fail");
+		return new NodoTree(-1, -1, "[fail]");
 	}
 	
 	public NodoTree[] getNodosActuales() {
@@ -173,7 +215,7 @@ public class ArbolSLD {
 	}
 	
 	public NodoTree getSolucion() {
-		if(solucionActual < valoresVariables.length) {
+		if(valoresVariables != null && solucionActual < valoresVariables.length) {
 			Map<String, Term> solActual = valoresVariables[solucionActual++];
 			
 			String[] rot = new String[solActual.size()];
@@ -275,11 +317,16 @@ public class ArbolSLD {
 		
 		NodoTree raiz;
 
-		raiz = new NodoTree(
-								Integer.parseInt(solucion.get("ID").toString()),
-								-1,
-								termArrayToInfix(solucion.get("Rotulo").toTermArray())
-							);
+		if(solucion != null && solucion.size() > 0) {
+			raiz = new NodoTree(
+					Integer.parseInt(solucion.get("ID").toString()),
+					-1,
+					termArrayToInfix(solucion.get("Rotulo").toTermArray())
+				);
+		} else {
+			raiz = new NodoTree(-1, -1, "[fail]");
+		}
+
 		
 		q.close();
 		

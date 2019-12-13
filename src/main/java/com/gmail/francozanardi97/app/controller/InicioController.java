@@ -12,11 +12,15 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
 import org.jpl7.Atom;
+import org.jpl7.JPLException;
+import org.jpl7.PrologException;
 import org.jpl7.Query;
 import org.jpl7.Term;
 import org.jpl7.Variable;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.ResourceUtils;
@@ -40,13 +44,8 @@ import com.gmail.francozanardi97.app.treeSLD.ManejadorArbolesSLD;
 
 
 @Controller
-//@RequestMapping(value="/")
 public class InicioController {
-	
-//	@Autowired mejor no lo hacemos un bean, creemos que no es correcto.
-//	@Autowired
-//	private ServletContext servletContext;
-	
+
 	@Autowired
 	private ServiceNotificacionError serviceNotifError;
 	
@@ -57,9 +56,6 @@ public class InicioController {
 	public String prepararForm(Model model) {
 		
 		System.out.println("session: " + RequestContextHolder.currentRequestAttributes().getSessionId());
-
-//		System.out.println("servletContext: " + servletContext);
-	
 
 		return "inicio";
 	}
@@ -88,20 +84,29 @@ public class InicioController {
 	}
 	
 	@RequestMapping(value="/", method=RequestMethod.POST)
-	public @ResponseBody String crearSLD(@ModelAttribute ProgramaUsuario p) {
-		try {
-			if(p != null && !p.getQueryProlog().isEmpty() && !p.getSourceCode().isEmpty()) {
-				return manejadorArbol.agregarArbolSLD(p);
-			}			
-		} catch (IOException e) {
-			e.printStackTrace();
+	public @ResponseBody ResponseEntity<String> crearSLD(@ModelAttribute ProgramaUsuario p) {
+		String error = "";
+		if(p.getQueryProlog().endsWith(".")) {
+			p.setQueryProlog(p.getQueryProlog().substring(0, p.getQueryProlog().length()-1));
 		}
 		
-		return "";
+		try {
+			if(p != null && !p.getQueryProlog().isEmpty()) {
+				return new ResponseEntity<>(manejadorArbol.agregarArbolSLD(p), HttpStatus.OK);
+			}	
+		} catch (PrologException e) {
+			error = e.term().arg(1).name();
+		} catch (JPLException e) {
+			error = e.getMessage();
+		} catch (Throwable e) {
+			error = "Fallo inesperado";
+		} 
+		
+		return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
 	}
 	
 	@RequestMapping(value="/notificarError", method=RequestMethod.POST)
-	public @ResponseBody void notificarError(@RequestParam("id") String id, @RequestParam("descripcion_error") String descripcionError) {
+	public @ResponseBody ResponseEntity<Void> notificarError(@RequestParam("id") String id, @RequestParam("descripcion_error") String descripcionError) {
 		ArbolSLD arbol = manejadorArbol.getArbolSLD(id);
 		ProgramaUsuario pu;
 		NotificacionError ne;
@@ -111,10 +116,14 @@ public class InicioController {
 			ne = new NotificacionError(pu, descripcionError);
 			try {
 				serviceNotifError.guardarNotificacion(ne);
+				
+				return new ResponseEntity<>(HttpStatus.OK);
 			} catch (SQLException e) {
-				e.printStackTrace();
+				System.out.println(e.getMessage());
 			}
 		}
+		
+		return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
 	}
 	
 	@RequestMapping(value="/getSolucion", method=RequestMethod.POST)

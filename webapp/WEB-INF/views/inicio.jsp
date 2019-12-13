@@ -1,5 +1,5 @@
-<%@ page language="java" contentType="text/html; charset=ISO-8859-1"
-	pageEncoding="ISO-8859-1"%>
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+	pageEncoding="UTF-8"%>
 <%@ taglib uri="http://www.springframework.org/tags" prefix="spring"%>
 <%@ taglib prefix="form" uri="http://www.springframework.org/tags/form"%>
 <!DOCTYPE html>
@@ -38,7 +38,12 @@ Adem�s minimizar los archivos js utilizados, especialmente codemirror.js. Mira
 <body>
 	<div id="loadDiv" style="display: block; background-color:white; position:absolute; top:0px; left:0px; width:100%; height:100%; z-index:2000;"></div>
 	<div class="container h-100">
+
 		<h1>Bienvenidos.</h1>
+		<div id="alert" class="alert alert-dismissible collapse">
+				<a id="closeAlert" href="#" class="close" aria-label="close">&times;</a>
+				<span></span>
+		</div>
 		<div class="row h-100">
 			<div class="form-group col-lg-6 h-100" style="margin-bottom: 10rem;">
 				<label>Source code</label>
@@ -118,20 +123,46 @@ Adem�s minimizar los archivos js utilizados, especialmente codemirror.js. Mira
 					<button class="fullScreen" id="fullScreenButton">
 						<img src="resources/img/fullscreen.svg">
 					</button>
+
+					<button class="report" id="reportButton" data-toggle="modal" data-target="#reportModal">
+						<img src="resources/img/report.svg">
+					</button>
+
 				</div>
 
-				
 				<div class="btn-group col-lg-12" style="margin-bottom: 15px; padding-left: 0px; padding-right: 0px;" role="group">
 					<button class="btn btn-primary" type="button" name="nextStep" id="nextStepButton">Next step</button>
 					<button class="btn btn-primary" type="button" name="skip" id="skipButton">Skip</button>
 				</div>
-					
-				<script>				
+
+				<!-- Modal -->
+				<div class="modal fade" id="reportModal" tabindex="-1" role="dialog" aria-hidden="true">
+					<div class="modal-dialog" role="document">
+					<div class="modal-content">
+						<div class="modal-header">
+						<h5 class="modal-title">Report error</h5>
+						<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+							<span aria-hidden="true">&times;</span>
+						</button>
+						</div>
+						<div class="modal-body">
+							<label for="reportDescription">Description</label>
+							<textarea class="form-control" id="reportDescription"></textarea>
+						</div>
+						<div class="modal-footer">
+						<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+						<button type="button" class="btn btn-primary" id="reportSend">Send</button>
+						</div>
+					</div>
+					</div>
+				</div>
+
+				<script>
 					document.getElementById("nextStepButton").style.display = "none";
 					document.getElementById("skipButton").style.display = "none";
 				</script>
 					
-				<span id="mySpan"></span>	
+					
 			</div>
 			
 

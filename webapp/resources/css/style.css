@@ -116,3 +116,33 @@ html, body {
   background-color: white;
 }
 
+/* report */
+.report {
+	background-color: white;
+	border: none;
+	position: absolute;
+	right:    0;
+	top:   0;
+	padding: 0px;
+    margin: 2px 13px;
+	z-index: 99;
+	
+	display: none;
+}
+
+.report img {
+	opacity: 50%;
+	z-index: 100;
+}
+
+.report img:hover {
+	opacity: 100%;
+	z-index: 100;
+}
+
+#reportDescription {
+	height: 100px;
+	max-height: 100px;
+	overflow-y: auto;
+	resize: none;
+}

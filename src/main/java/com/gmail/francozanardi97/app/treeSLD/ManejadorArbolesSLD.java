@@ -62,7 +62,7 @@ public class ManejadorArbolesSLD {
 		
 	}
 	
-	public String agregarArbolSLD(ProgramaUsuario p) throws IOException {
+	public String agregarArbolSLD(ProgramaUsuario p) throws Throwable {
 		String name = generateNewTreeID();
 		
 		ArbolSLD arbol = new ArbolSLD	(
@@ -77,7 +77,7 @@ public class ManejadorArbolesSLD {
 	}
 	
 	
-	public ArbolSLD agregarArbolSLD(String name, ProgramaUsuario p) {
+	public ArbolSLD agregarArbolSLD(String name, ProgramaUsuario p) throws Throwable {
 		ArbolSLD arbol = new ArbolSLD	(
 											name,
 											servletContext.getRealPath(PATH_PROLOG_FILES + "/" + name + ".pl"),

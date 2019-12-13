@@ -109,7 +109,8 @@ $('#optionsButton').click(() => {
 });
 
 $('#stopButton').click(() => {
-	$.post('eliminarArbol', 'id='+myID, () => {
+	$.post('eliminarArbol', 'id='+myID)
+	.always(() => {
 		document.getElementById("createButton").style.display = "block";
 		document.getElementById("optionsButton").style.display = "block";
 		document.getElementById("nextButton").style.display = "none";
@@ -122,6 +123,14 @@ $('#stopButton').click(() => {
 		mapNodos.clear();
 		
 		myID = null;
+
+		configTreeDefault.nodeStructure.text.name = "___"
+		configTreeDefault.nodeStructure.HTMLid = "emptyTree";
+		configTreeDefault.nodeStructure.HTMLclass = "nodo_invisible";
+		
+		treant.tree.reload();
+
+		configTreeDefault.nodeStructure.HTMLclass = ""; //volvemos a dejarlo por defecto visible.
 	});
 });
 
@@ -225,22 +234,25 @@ $('#program').submit(
 				.then(raiz => {
 					crearArbol(raiz);
 					
-					configButtonFullScreen();
+					configButtons_fullScreen(); //esto no tendría que crearlo cada vez que creo un árbol
+					//además cuando hago stop tendría que desactivar la función del hover en el div sldtree.
+
+					document.getElementById("createButton").style.display = "none";
+					document.getElementById("optionsButton").style.display = "none";
+					document.getElementById("nextButton").style.display = "block";
+					document.getElementById("stopButton").style.display = "block";
+		
+					document.getElementById("nextStepButton").style.display = "block";
+					document.getElementById("skipButton").style.display = "block";
+					
+					document.getElementById("nextButton").disabled = true;
+					document.getElementById("nextStepButton").disabled = false;
+					document.getElementById("skipButton").disabled = false;
 				})
-			
-
-			document.getElementById("createButton").style.display = "none";
-			document.getElementById("optionsButton").style.display = "none";
-			document.getElementById("nextButton").style.display = "block";
-			document.getElementById("stopButton").style.display = "block";
-
-			document.getElementById("nextStepButton").style.display = "block";
-			document.getElementById("skipButton").style.display = "block";
-			
-			document.getElementById("nextButton").disabled = true;
-			document.getElementById("nextStepButton").disabled = false;
-			document.getElementById("skipButton").disabled = false;
-			
+				.catch((error) => {
+					console.log('error: ', error);
+					showAlertError('¡Se ha producido un fallo interno!', error.responseText.length < 60 ? error.responseText : (error.responseText.substring(0, 60) + '...'));
+				});
 
 			evento.preventDefault();
 		}
@@ -248,8 +260,6 @@ $('#program').submit(
 
 
 function agregarSolucion(nodo){
-	var solucion;
-	
 	$.post('getSolucion', 'id='+myID, (solucion) => {
 		
 		if(solucion.rotulo !== "" && solucion.rotulo !== "[]"){
@@ -270,8 +280,7 @@ function agregarSolucion(nodo){
 
 function nextFotograma(callback){
 	$.post('avanzarFotograma', 'id='+myID)
-	.then(fotActual => {
-		$('#mySpan').text(fotActual);
+	.then(() => {
 		return $.post('getRamas', 'id='+myID);
 	})
 	.then(ramas => {
@@ -306,7 +315,6 @@ function crearArbol(nodo){
 	configTreeDefault.nodeStructure.HTMLid = 'nodo_' + nodo.id;
 	
 	if(treant){
-		//treant.tree.initJsonConfig = configTreeDefault; no es necesario, dado que comparten referencias.
 		treant.tree.reload();
 	} else {
 		treant = new Treant(configTreeDefault, null, $);
@@ -322,7 +330,7 @@ function graficarRamas(ramas){
 		
 		let nodeInvisible = {
 				text: {
-					name: "IIIIIII"
+					name: "______"
 				},
 				HTMLclass: "nodo_invisible",
 				HTMLid: "rama_" + rama.id
@@ -366,7 +374,7 @@ function graficarRamasCut(ramas){
 	}
 }
 
-function configButtonFullScreen(){
+function configButtons_fullScreen(){
 	
 	//si todos son nulls entonces no está en fullscreen.
 	function isFullScreenOn() {
@@ -383,7 +391,8 @@ function configButtonFullScreen(){
 		
 		function exitFullScreen() {
 			if(!isFullScreenOn()){ 
-				btn.style.cssText = "display: block;";
+				btnFullscreen.style.cssText = "display: block;";
+				btnreport.style.cssText = "display: block;";
 				viewTree.style.cssText = "height: 100%!important;";
 				acomodarTree();
 			}
@@ -400,9 +409,11 @@ function configButtonFullScreen(){
 		
 	}
 	
-	function addListnerToFullScreen(){
-		btn.addEventListener("click", () => {
-			btn.style.cssText = "display: none;";
+	function addListnerToFullscreen(){
+		btnFullscreen.addEventListener("click", () => {
+			btnFullscreen.style.cssText = "display: none;";
+			btnreport.style.cssText = "display: none;";
+			
 
 			viewTree.style.cssText = "height: 90%!important;";
 
@@ -421,26 +432,29 @@ function configButtonFullScreen(){
 			acomodarTree();
 		});
 	}
-	
+
 	function configHover(){
 		$(viewTree).hover(() => {
 			if(!isFullScreenOn()){
-				btn.style.cssText = "display: block;";
+				btnFullscreen.style.cssText = "display: block;";
+				btnreport.style.cssText = "display: block;";
 			}
 		}, () => {
-			btn.style.cssText = "display: none;";
+			btnFullscreen.style.cssText = "display: none;";
+			btnreport.style.cssText = "display: none;";
 		});
 	}
 	
-	var btn, viewTree;
+	var btnFullscreen, btnreport, viewTree;
 
-	btn = document.getElementById('fullScreenButton');
+	btnFullscreen = document.getElementById('fullScreenButton');
+	btnreport = document.getElementById('reportButton');
 	viewTree = document.getElementById('viewTree');
+
 	
 	configHover();
-	addListnerToFullScreen();
-	configExitFullScreen();
-	
+	addListnerToFullscreen();
+	configExitFullScreen();	
 }
 
 function activarControlesNext(){
@@ -453,6 +467,37 @@ function desactivarControlesNext(){
 	$('#skipButton').attr("disabled", true);
 }
 
+$("#reportSend").click(() => {
+	$.post('notificarError', 'id='+myID+"&descripcion_error="+encodeURIComponent($("#reportDescription").val()))
+	.done(() => {
+		showAlertSuccess('¡Error enviado!', 'Gracias por reportar el error.');
+	}).fail(() => {
+		showAlertError('¡Se ha producido un fallo interno!', 'Inténtelo más tarde.');
+	}).always(() => {
+		$('#reportModal').modal('hide');
+		$('#reportDescription').val("");
+		
+	})
+
+});
+
+$("#closeAlert").click(() => {
+	$("#alert").hide();
+})
+
+function showAlertError(title, body){
+	$('#alert').removeClass('alert-success');
+	$('#alert').addClass('alert-danger');
+	$('#alert span').html('<strong>' + title + '</strong> ' + body);
+	$('#alert').show();
+}
+
+function showAlertSuccess(title, body){
+	$('#alert').removeClass('alert-danger');
+	$('#alert').addClass('alert-success');
+	$('#alert span').html('<strong>' + title + '</strong> ' + body);
+	$('#alert').show();
+}
 
 //t.tree.addNode(nodoPadre, nuevoNodo);
 

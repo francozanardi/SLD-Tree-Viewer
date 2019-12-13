@@ -5,6 +5,8 @@
 :- dynamic datos/2.
 :- dynamic arbol/2.
 
+% :- dynamic(unknown(_, fail)).
+
 
 % La idea es hacer un meta-intérprete capaz de realizar un árbol SLD para un programa P.
 % Se hacen uso de assertz y retract para no verse afectado por el backtracking del meta-intérprete y conservar todo nodo,
