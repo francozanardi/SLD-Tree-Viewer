@@ -1510,6 +1510,9 @@
 				connector: this.getTree().connectionStore[this.id],
 				cut: cut
 			};
+			
+			this.getTree().connectionStore[this.id].connector.attr("stroke", "gray");
+			this.getTree().connectionStore[this.id].cut.attr("stroke", "gray");
 
         },
 

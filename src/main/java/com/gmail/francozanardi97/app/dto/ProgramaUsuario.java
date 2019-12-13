@@ -1,4 +1,4 @@
-package com.gmail.francozanardi97.app.model;
+package com.gmail.francozanardi97.app.dto;
 
 public class ProgramaUsuario {
 	private String sourceCode;

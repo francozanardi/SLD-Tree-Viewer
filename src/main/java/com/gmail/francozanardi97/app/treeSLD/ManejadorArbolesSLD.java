@@ -16,7 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.DigestUtils;
 
-import com.gmail.francozanardi97.app.model.ProgramaUsuario;
+import com.gmail.francozanardi97.app.dto.ProgramaUsuario;
 
 @Component
 public class ManejadorArbolesSLD {

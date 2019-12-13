@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.Map;
 
 import javax.servlet.ServletContext;
@@ -29,13 +30,14 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.context.ContextLoader;
 import org.springframework.web.context.request.RequestContextHolder;
 
-import com.gmail.francozanardi97.app.model.NodoTree;
-import com.gmail.francozanardi97.app.model.ProgramaUsuario;
-import com.gmail.francozanardi97.app.model.RamaTree;
+import com.gmail.francozanardi97.app.domain.NotificacionError;
+import com.gmail.francozanardi97.app.dto.NodoTree;
+import com.gmail.francozanardi97.app.dto.ProgramaUsuario;
+import com.gmail.francozanardi97.app.dto.RamaTree;
+import com.gmail.francozanardi97.app.service.ServiceNotificacionError;
 import com.gmail.francozanardi97.app.treeSLD.ArbolSLD;
 import com.gmail.francozanardi97.app.treeSLD.ManejadorArbolesSLD;
 
-import treeSLD.TreeSLD;
 
 @Controller
 //@RequestMapping(value="/")
@@ -44,6 +46,9 @@ public class InicioController {
 //	@Autowired mejor no lo hacemos un bean, creemos que no es correcto.
 //	@Autowired
 //	private ServletContext servletContext;
+	
+	@Autowired
+	private ServiceNotificacionError serviceNotifError;
 	
 	@Autowired
 	private ManejadorArbolesSLD manejadorArbol;
@@ -95,6 +100,23 @@ public class InicioController {
 		return "";
 	}
 	
+	@RequestMapping(value="/notificarError", method=RequestMethod.POST)
+	public @ResponseBody void notificarError(@RequestParam("id") String id, @RequestParam("descripcion_error") String descripcionError) {
+		ArbolSLD arbol = manejadorArbol.getArbolSLD(id);
+		ProgramaUsuario pu;
+		NotificacionError ne;
+		
+		if(arbol != null) {
+			pu = arbol.getProgramaUsuario();
+			ne = new NotificacionError(pu, descripcionError);
+			try {
+				serviceNotifError.guardarNotificacion(ne);
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
 	@RequestMapping(value="/getSolucion", method=RequestMethod.POST)
 	public @ResponseBody NodoTree getSolucion(@RequestParam("id") String id) {
 		ArbolSLD arbol = manejadorArbol.getArbolSLD(id);
@@ -142,7 +164,6 @@ public class InicioController {
 	public @ResponseBody RamaTree[] getRamasCut(@RequestParam("id") String id) {
 		return manejadorArbol.getArbolSLD(id).getRamasCutActuales();
 	}
-	
 	
 	@RequestMapping(value="/eliminarArbol", method=RequestMethod.POST)
 	public @ResponseBody void eliminarArbol(@RequestParam("id") String id) {

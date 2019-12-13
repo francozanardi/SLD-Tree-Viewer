@@ -1,4 +1,4 @@
-Conceptos para Spring MVC.
+﻿Conceptos para Spring MVC.
 
 DAO (objetos que se encargan la persistencia de datos): https://es.wikipedia.org/wiki/Objeto_de_acceso_a_datos
 POJO (objetos con programación de java nativo, sin framework): https://es.wikipedia.org/wiki/Plain_Old_Java_Object
@@ -11,3 +11,6 @@ Patrones de diseño que usa Spring MVC:
 
 
 DAO y DTO son parte del modelo en el patrón MVC.
+
+El repositorio (DAO's) es donde se almacenan los datos. El servicio (Service) es lo que manipula los datos, para ello se comunica con el repositorio.
+Es una forma de desacoplar la forma en que almacena los datos del resto de la aplicación.

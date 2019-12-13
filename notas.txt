@@ -1,4 +1,4 @@
-"'[|]'(p(3, 2), '[]')"
+﻿"'[|]'(p(3, 2), '[]')"
 
 "'[|]'(j(3), '[|]'(k(2), '[|]'(h(3, 2, 6), '[]')))"
 
@@ -67,3 +67,7 @@ YA SE PORQUE SE BUGUEA EL SCROLL.
 Esto sucede porque cuando damos a stop y a dibujar otro árbol, la librería borra todo lo que hay en ese sector.
 Entonces borra las barras de scroll.
 Hay que solucionar esto.
+
+
+Cosas a mejorar:
+Agregar captchar a la hora de mandar error y de mandar el programa.

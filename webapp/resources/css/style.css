@@ -40,8 +40,8 @@ html, body {
 }
 
 .node {
-	color: #9CB5ED;
-	border: 2px solid #C8C8C8;
+	color: #3393fa; /*#9CB5ED*/
+	border: 2px solid #bcbaba; /*#C8C8C8;*/
 	border-radius: 3px;
 }
 

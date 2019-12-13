@@ -22,9 +22,9 @@ import org.jpl7.fli.Prolog;
 import org.jpl7.fli.term_t;
 import org.springframework.stereotype.Component;
 
-import com.gmail.francozanardi97.app.model.NodoTree;
-import com.gmail.francozanardi97.app.model.ProgramaUsuario;
-import com.gmail.francozanardi97.app.model.RamaTree;
+import com.gmail.francozanardi97.app.dto.NodoTree;
+import com.gmail.francozanardi97.app.dto.ProgramaUsuario;
+import com.gmail.francozanardi97.app.dto.RamaTree;
 
 public class ArbolSLD {
 	
@@ -136,6 +136,10 @@ public class ArbolSLD {
 		
 		File f = new File(pathPU);
 		f.delete();
+	}
+	
+	public ProgramaUsuario getProgramaUsuario() {
+		return programaUsuario;
 	}
 
 	public void siguienteFotograma() {
