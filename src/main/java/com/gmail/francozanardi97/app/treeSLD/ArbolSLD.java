@@ -106,11 +106,11 @@ public class ArbolSLD {
 	
 	private void initVariables() {
 		try {
-			Query q = new Query(programaUsuario.getQueryProlog());
-			valoresVariables = q.allSolutions();
-			q.close();
+			deleteDynamicPredicates();
+			valoresVariables = Query.allSolutions(String.format("'%s':(%s)", namePU, programaUsuario.getQueryProlog()));
 		} catch(PrologException e) {
-			
+			System.out.println("No se pudieron inicializar las variables debido a una excepción.");
+			System.out.println("-> " + e.getMessage());
 		}
 
 	}
@@ -147,6 +147,7 @@ public class ArbolSLD {
 			throw e.getCause();
 		} finally {
 		   future.cancel(true); // may or may not desire this
+		   //Thread.currentThread().interrupt();
 		}
 		
 		q.close();
@@ -158,6 +159,7 @@ public class ArbolSLD {
 
 		try {
 			FileWriter w = new FileWriter(f);
+			w.append(String.format(":- module('%s', []). \n\n", namePU));
 			w.append(programaUsuario.getSourceCode());
 			w.flush();
 			w.close();
@@ -166,15 +168,19 @@ public class ArbolSLD {
 		}
 	}
 	
-	private void close() {
-		Query qUnload = new Query(String.format("unload_file('%s')", pathPU.replace('\\', '/')));
-		qUnload.allSolutions();
-		qUnload.close();
-
-		Query q1 = new Query(String.format("eliminarArbol('%s')", namePU));
-		q1.allSolutions();
-		q1.close();
+	private void deleteDynamicPredicates() {
+		Query.allSolutions(String.format("predicate_property('%s':X, dynamic), retractall('%s':X), compile_predicates(['%s':X])", namePU, namePU, namePU));
+	}
+	
+	private void close() {		
+		Query.allSolutions(String.format("unload_file('%s')", pathPU.replace('\\', '/')));
+		Query.allSolutions(String.format("eliminarArbol('%s')", namePU));
+		deleteDynamicPredicates();
 		
+		/*
+		 * Eliminamos todos los predicados dinámicos que aún persisten (los que se crearon con asserts)
+		 * Además le quitamos la propiedad de ser dinámicos, usando 'compile_predicates/1'.
+		 */
 
 		File f = new File(pathPU);
 		f.delete();

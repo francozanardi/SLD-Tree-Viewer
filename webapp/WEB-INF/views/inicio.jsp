@@ -46,7 +46,7 @@ Adem�s minimizar los archivos js utilizados, especialmente codemirror.js. Mira
 		</div>
 		<div class="row h-100">
 			<div class="form-group col-lg-6 h-100" style="margin-bottom: 10rem;">
-				<label>Source code</label>
+				<label for="program">Source code</label>
 				<form id='program' class="h-100" autocomplete="off" spellcheck="false">
 					<textarea id="sourceCode"></textarea>
 					<%-- <form:errors path="sourceCode" cssClass="errorCode" /> --%>
@@ -113,7 +113,7 @@ Adem�s minimizar los archivos js utilizados, especialmente codemirror.js. Mira
 			</div>
 
 			<div class="form-group col-lg-6 h-100" id="controlsAndViewTree">
-				<label>SLDTree</label>
+				<label for="viewTree">SLDTree</label>
 
 				<div class="contenedorGrafico h-100" id="viewTree">
 					<div class="chart h-100" id="sldtree">

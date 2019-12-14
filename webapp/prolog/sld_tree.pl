@@ -301,7 +301,7 @@ solve(A, nodo(IDPadre, _, _, [A | ConjuncionesRestantes]), ModuleName):-
 	% Verificamos que el predicado no sea uno provisto por el sistema (nodebug), en caso de serlo es privado y no podemos acceder a su cuerpo
 	\+(predicate_property(ModuleName:A, nodebug)),
 		
-	aggregate_all(count, clause(ModuleName:A, _), C), 
+	aggregate_all(count, clause(ModuleName:A, _), C), %cuento la cantidad de soluciones alternativas que tiene A.
 	C > 0,
 	
 	datos(ModuleName, ultimaID_rama(IDRamaActual)),
@@ -384,7 +384,7 @@ solve(repeat, nodo(IDPadre, _, _, [repeat | ConjuncionesRestantes]), ModuleName)
 solve(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes]), ModuleName):-
 	predicate_property(ModuleName:A, nodebug),
 	
-	aggregate_all(count, ModuleName:A, C), % evaluar la posibilidad de que A sea un repeat!.
+	aggregate_all(count, ModuleName:A, C), % C cuenta la cantidad de soluciones que finalizan en 'true' para A, por lo tanto si C > 0, sabemos que A se cumple al menos una vez.
 	C > 0,
 	
 	datos(ModuleName, ultimaID_rama(IDRamaActual)),
@@ -394,8 +394,20 @@ solve(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes]), ModuleNa
 	
 	datos(ModuleName, ultimaID_rama(IDUltimaRama)), %Guardamos el ID de la última rama colocada.
 	
-	!, % Si C > 0, entonces existe algún cuerpo posible, borramos toda solución alternativa de 'solve' para mayor eficiencia.
-	ModuleName:A, %simplemente invocamos A para ver si se satisface.
+	!, % Como C > 0, borramos toda solución alternativa de 'solve' para mayor eficiencia.
+	% En el caso de un assert, no podemos invocar directamente A, dado que el aggregate_all ya invoca a todas las alternativas de A.
+	% Esto trae problemas notorios en los assertz, dado que se invocan dos veces: en el aggregate_all y con A de nuevo.
+	% Para esos casos, usamos un between con cantidad C.
+	% Para los restantes, es necesario invocar a A, dado a que de esta forma se "inicializan" las variables en predicados built-in.
+	
+	functor(A, Name, _),
+	(
+		(Name = assertz; Name = assert; Name = asserta) ->
+			between(1, C, _)
+		;
+			ModuleName:A
+	),
+	
 	
 	% buscamos la rama libre que será en la cual se agregará el nodo, si la rama fue podada entonces no es tenida en cuenta.
 	buscarRamaLibre(ModuleName, RamaLibre, IDPrimeraRama, IDUltimaRama),

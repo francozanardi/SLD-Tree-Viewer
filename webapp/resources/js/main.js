@@ -78,10 +78,6 @@ var configTreeDefault = {
 	},
 	
 	nodeStructure: {
-			text: {
-				name: ''
-			},
-			HTMLid: ''
 	}
 	
 };
@@ -111,6 +107,7 @@ $('#optionsButton').click(() => {
 $('#stopButton').click(() => {
 	$.post('eliminarArbol', 'id='+myID)
 	.always(() => {
+		document.getElementById("createButton").disabled = false;
 		document.getElementById("createButton").style.display = "block";
 		document.getElementById("optionsButton").style.display = "block";
 		document.getElementById("nextButton").style.display = "none";
@@ -124,13 +121,12 @@ $('#stopButton').click(() => {
 		
 		myID = null;
 
-		configTreeDefault.nodeStructure.text.name = "___"
-		configTreeDefault.nodeStructure.HTMLid = "emptyTree";
-		configTreeDefault.nodeStructure.HTMLclass = "nodo_invisible";
+		configTreeDefault.nodeStructure = {HTMLclass: "nodo_invisible"};
 		
 		treant.tree.reload();
+		configTreeDefault.nodeStructure = {};
 
-		configTreeDefault.nodeStructure.HTMLclass = ""; //volvemos a dejarlo por defecto visible.
+		// configTreeDefault.nodeStructure.HTMLclass = ""; //volvemos a dejarlo por defecto visible.
 	});
 });
 
@@ -225,6 +221,8 @@ $('#program').submit(
 			var s = "sourceCode=" + encodeURIComponent(editor.getValue()) + "&queryProlog="
 					+ encodeURIComponent($('#queryProlog').val());
 
+			document.getElementById("createButton").disabled = true;
+
 			$.post('', s)
 				.then(id => {
 					myID = id;
@@ -233,9 +231,6 @@ $('#program').submit(
 				})
 				.then(raiz => {
 					crearArbol(raiz);
-					
-					configButtons_fullScreen(); //esto no tendría que crearlo cada vez que creo un árbol
-					//además cuando hago stop tendría que desactivar la función del hover en el div sldtree.
 
 					document.getElementById("createButton").style.display = "none";
 					document.getElementById("optionsButton").style.display = "none";
@@ -248,11 +243,14 @@ $('#program').submit(
 					document.getElementById("nextButton").disabled = true;
 					document.getElementById("nextStepButton").disabled = false;
 					document.getElementById("skipButton").disabled = false;
+
+
 				})
 				.catch((error) => {
 					console.log('error: ', error);
 					showAlertError('¡Se ha producido un fallo interno!', error.responseText.length < 60 ? error.responseText : (error.responseText.substring(0, 60) + '...'));
-				});
+					document.getElementById("createButton").disabled = false;
+				})
 
 			evento.preventDefault();
 		}
@@ -311,7 +309,10 @@ function nextFotograma(callback){
 function crearArbol(nodo){
 	console.log('nodo.rotulo: ', nodo.rotulo);
 	
-	configTreeDefault.nodeStructure.text.name = nodo.rotulo;
+	configTreeDefault.nodeStructure.text = {
+		name: nodo.rotulo
+	};
+
 	configTreeDefault.nodeStructure.HTMLid = 'nodo_' + nodo.id;
 	
 	if(treant){
@@ -413,8 +414,6 @@ function configButtons_fullScreen(){
 		btnFullscreen.addEventListener("click", () => {
 			btnFullscreen.style.cssText = "display: none;";
 			btnreport.style.cssText = "display: none;";
-			
-
 			viewTree.style.cssText = "height: 90%!important;";
 
 			var controlsAndView = document.getElementById('controlsAndViewTree');
@@ -435,7 +434,7 @@ function configButtons_fullScreen(){
 
 	function configHover(){
 		$(viewTree).hover(() => {
-			if(!isFullScreenOn()){
+			if(!isFullScreenOn() && mapNodos.size > 0){
 				btnFullscreen.style.cssText = "display: block;";
 				btnreport.style.cssText = "display: block;";
 			}
@@ -498,6 +497,10 @@ function showAlertSuccess(title, body){
 	$('#alert span').html('<strong>' + title + '</strong> ' + body);
 	$('#alert').show();
 }
+
+
+configButtons_fullScreen(); //esto no tendría que crearlo cada vez que creo un árbol
+//además cuando hago stop tendría que desactivar la función del hover en el div sldtree.
 
 //t.tree.addNode(nodoPadre, nuevoNodo);
 
