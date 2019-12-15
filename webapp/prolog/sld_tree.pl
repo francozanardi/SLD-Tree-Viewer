@@ -384,7 +384,10 @@ solve(repeat, nodo(IDPadre, _, _, [repeat | ConjuncionesRestantes]), ModuleName)
 solve(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes]), ModuleName):-
 	predicate_property(ModuleName:A, nodebug),
 	
+	findall(PA, (predicate_property(ModuleName:PA, dynamic), ModuleName:PA), PredDinActuales),
 	aggregate_all(count, ModuleName:A, C), % C cuenta la cantidad de soluciones que finalizan en 'true' para A, por lo tanto si C > 0, sabemos que A se cumple al menos una vez.
+	findall(PN, (predicate_property(ModuleName:PN, dynamic), ModuleName:PN), PredDinNuevos),
+	restablecerPredicadosDinamicos(ModuleName, PredDinActuales, PredDinNuevos),
 	C > 0,
 	
 	datos(ModuleName, ultimaID_rama(IDRamaActual)),
@@ -395,18 +398,18 @@ solve(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes]), ModuleNa
 	datos(ModuleName, ultimaID_rama(IDUltimaRama)), %Guardamos el ID de la última rama colocada.
 	
 	!, % Como C > 0, borramos toda solución alternativa de 'solve' para mayor eficiencia.
-	% En el caso de un assert, no podemos invocar directamente A, dado que el aggregate_all ya invoca a todas las alternativas de A.
-	% Esto trae problemas notorios en los assertz, dado que se invocan dos veces: en el aggregate_all y con A de nuevo.
-	% Para esos casos, usamos un between con cantidad C.
-	% Para los restantes, es necesario invocar a A, dado a que de esta forma se "inicializan" las variables en predicados built-in.
 	
-	functor(A, Name, _),
-	(
-		(Name = assertz; Name = assert; Name = asserta) ->
-			between(1, C, _)
-		;
-			ModuleName:A
-	),
+	% En el caso de un assert, no podemos invocar directamente A, dado que el aggregate_all ya invoca a todas las alternativas de A.
+	% Esto trae problemas notorios en los assert, dado que se invocan dos veces: en el aggregate_all y con A de nuevo.
+	% También tener en cuenta que puede ser un predicado built-in que invoque a un assert, modificando el estado de los predicados dinámicos
+	% por ello, obtenemos el estado de los predicados dinamicos antes de usar el aggregate y luego después de haberlo usado.
+	
+	% Debemos necesariamente invocar al predicado A, ya que este podría darle valores a algunas variables, por ejemplo:
+	%	call(assertz(p), X is 5)
+	% No podríamos en este caso simular C ramas alternativas utilizando un between/3 u otro predicado, dado que no se "incializaría" X.
+
+	
+	ModuleName:A,
 	
 	
 	% buscamos la rama libre que será en la cual se agregará el nodo, si la rama fue podada entonces no es tenida en cuenta.
@@ -475,6 +478,34 @@ crearSLD(A, ModuleName, Path):-
 	
 	%unload_file(Path).
 
+
+
+restablecerPredicadosDinamicos(_, Ant, Ant):- !.
+
+restablecerPredicadosDinamicos(M, Ant, New):-
+	forall(member(PN, New),
+	(
+		retract(M:PN), 
+		(
+			predicate_property(M:PN, dynamic) ->
+				compile_predicates([M:PN])
+			;
+				true 
+		)
+	)),
+	
+	% Procedemos a recuperar el estado anterior, tener en cuenta que utilizamos assertz, dado a que la lista Ant
+	% se encuentra en orden en el que los predicados se hallan.
+	
+	% Ejemplo:
+	%	sea p/1 un predicado dinámico, el cual aparece en memoria con este orden:
+	%		p(3), p(0), p(1)
+	%	Luego en la lista se guardan en ese mismo orden, por lo que a la hora de recuperarlos,
+	%	primero se coloca p(3) al final, luego p(0) al final (tendríamos p(3), p(0)), y por último p(1) 
+	%	(quedando p(3), p(0), p(1)).
+	
+	forall(member(PA, Ant), assertz(M:PA)).
+  
 
 
 conjuncionesALista((A, B), L):-

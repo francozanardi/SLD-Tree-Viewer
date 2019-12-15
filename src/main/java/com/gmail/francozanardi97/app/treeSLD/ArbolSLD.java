@@ -177,11 +177,6 @@ public class ArbolSLD {
 		Query.allSolutions(String.format("eliminarArbol('%s')", namePU));
 		deleteDynamicPredicates();
 		
-		/*
-		 * Eliminamos todos los predicados dinámicos que aún persisten (los que se crearon con asserts)
-		 * Además le quitamos la propiedad de ser dinámicos, usando 'compile_predicates/1'.
-		 */
-
 		File f = new File(pathPU);
 		f.delete();
 	}

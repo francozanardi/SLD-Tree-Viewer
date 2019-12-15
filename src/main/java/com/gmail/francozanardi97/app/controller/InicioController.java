@@ -83,6 +83,17 @@ public class InicioController {
 		return "q";
 	}
 	
+	@RequestMapping("/getModulos")
+	public @ResponseBody void getModulos() {
+		Query q = new Query("arbol(M, _)");
+		
+		for(Map<String, Term> m: q.allSolutions()) {
+			System.out.println("-> M = " + m.get("M").toString());
+		}
+		
+		q.close();
+	}
+	
 	@RequestMapping(value="/", method=RequestMethod.POST)
 	public @ResponseBody ResponseEntity<String> crearSLD(@ModelAttribute ProgramaUsuario p) {
 		String error = "";
@@ -121,140 +132,85 @@ public class InicioController {
 			} catch (SQLException e) {
 				System.out.println(e.getMessage());
 			}
+		} else {
+			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 		}
 		
 		return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
 	}
 	
 	@RequestMapping(value="/getSolucion", method=RequestMethod.POST)
-	public @ResponseBody NodoTree getSolucion(@RequestParam("id") String id) {
+	public @ResponseBody ResponseEntity<NodoTree> getSolucion(@RequestParam("id") String id) {
 		ArbolSLD arbol = manejadorArbol.getArbolSLD(id);
-				
-		return arbol.getSolucion();
+		if(arbol != null) {
+			return new ResponseEntity<>(arbol.getSolucion(), HttpStatus.OK);
+		}
+		
+		return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
 	}
 	
 	@RequestMapping(value="/getRaiz", method=RequestMethod.POST)
-	public @ResponseBody NodoTree getRaiz(@RequestParam("id") String id) {
+	public @ResponseBody ResponseEntity<NodoTree> getRaiz(@RequestParam("id") String id) {
 		ArbolSLD arbol = manejadorArbol.getArbolSLD(id);
-				
-		return arbol.getRaiz();
-	}
-	
-	@RequestMapping("/getModulos")
-	public @ResponseBody void getModulos() {
-		Query q = new Query("arbol(M, _)");
-		
-		for(Map<String, Term> m: q.allSolutions()) {
-			System.out.println("-> M = " + m.get("M").toString());
+			
+		if(arbol != null) {
+			return new ResponseEntity<>(arbol.getRaiz(), HttpStatus.OK);
 		}
 		
-		q.close();
+		return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
 	}
 	
+	
 	@RequestMapping(value="/avanzarFotograma", method=RequestMethod.POST)
-	public @ResponseBody Integer avanzarFotograma(@RequestParam("id") String id) {
+	public @ResponseBody ResponseEntity<Integer> avanzarFotograma(@RequestParam("id") String id) {
 		ArbolSLD arbol = manejadorArbol.getArbolSLD(id);
-		arbol.siguienteFotograma();
 		
-		return arbol.getFotograma();
+		if(arbol != null) {
+			arbol.siguienteFotograma();
+			
+			return new ResponseEntity<>(arbol.getFotograma(), HttpStatus.OK);
+		}
+		
+		return new ResponseEntity<>(-1, HttpStatus.BAD_REQUEST);
+
 	}
 	
 	@RequestMapping(value="/getNodos", method=RequestMethod.POST)
-	public @ResponseBody NodoTree[] getNodos(@RequestParam("id") String id) {
-		return manejadorArbol.getArbolSLD(id).getNodosActuales();
+	public @ResponseBody ResponseEntity<NodoTree[]> getNodos(@RequestParam("id") String id) {
+		ArbolSLD arbol =  manejadorArbol.getArbolSLD(id);
+		
+		if(arbol != null) {
+			return new ResponseEntity<>(arbol.getNodosActuales(), HttpStatus.OK);
+		}
+		
+		return new ResponseEntity<>(new NodoTree[] {}, HttpStatus.BAD_REQUEST);		
 	}
 	
 	@RequestMapping(value="/getRamas", method=RequestMethod.POST)
-	public @ResponseBody RamaTree[] getRamas(@RequestParam("id") String id) {
-		return manejadorArbol.getArbolSLD(id).getRamasActuales();
+	public @ResponseBody ResponseEntity<RamaTree[]> getRamas(@RequestParam("id") String id) {
+		ArbolSLD arbol =  manejadorArbol.getArbolSLD(id);
+		
+		if(arbol != null) {
+			return new ResponseEntity<>(arbol.getRamasActuales(), HttpStatus.OK);
+		}
+		
+		return new ResponseEntity<>(new RamaTree[] {}, HttpStatus.BAD_REQUEST);	
 	}
 	
 	@RequestMapping(value="/getRamasCut", method=RequestMethod.POST)
-	public @ResponseBody RamaTree[] getRamasCut(@RequestParam("id") String id) {
-		return manejadorArbol.getArbolSLD(id).getRamasCutActuales();
+	public @ResponseBody ResponseEntity<RamaTree[]> getRamasCut(@RequestParam("id") String id) {
+		ArbolSLD arbol =  manejadorArbol.getArbolSLD(id);
+		
+		if(arbol != null) {
+			return new ResponseEntity<>(arbol.getRamasCutActuales(), HttpStatus.OK);
+		}
+		
+		return new ResponseEntity<>(new RamaTree[] {}, HttpStatus.BAD_REQUEST);	
 	}
 	
 	@RequestMapping(value="/eliminarArbol", method=RequestMethod.POST)
 	public @ResponseBody void eliminarArbol(@RequestParam("id") String id) {
 		manejadorArbol.eliminarArbol(id);
 	}
-	
-
-	
-	
-	
-	/*@RequestMapping(value="/", method=RequestMethod.POST)
-	public String crearSLD(@ModelAttribute ProgramaUsuario p, BindingResult result, HttpServletRequest req) {
-		// Por ahora la validación de errores la hacemos acá, pero se puede separar y usar otra clase, creo que sería más correcto. Leer spring.pdf.
-		String sessionID = RequestContextHolder.currentRequestAttributes().getSessionId();
-		
-		System.out.println("Hola :v");
-		
-		System.out.println("p.sourceCode(): " + p.getSourceCode());
-		System.out.println("p.queryProlog(): " + p.getQueryProlog());
-		
-		if(p.getSourceCode() == "") {
-			result.rejectValue("sourceCode", "codeEmpty");
-		}
-		
-		if(p.getQueryProlog() == "") {
-			result.rejectValue("queryProlog", "consultaVacia");
-		}
-		
-		
-		if(!result.hasErrors()) {		
-			String path = req.getServletContext().getRealPath("/prolog/" + sessionID + ".pl");
-			// La idea es que haya una clase que gestione los nombres de los archivos, podría ser siemplemente un contador que vaya incrementado 
-			// a medida que le pedimos reservar un nombre.
-			
-			System.out.println("path: " + path);
-			
-			String pathMI = req.getServletContext().getRealPath("/prolog/sld_tree.pl");
-			
-			System.out.println("pathMI: " + pathMI);
-			
-			cargarSourceCode(path, p);
-			cargarMetainterprete(pathMI);
-			
-			Query queryCrearSLD  = 
-			        new Query( 
-				            "crearSLD", 
-				            new Term[] {new Atom(p.getQueryProlog()), new Atom(sessionID), new Atom(path)} 
-				        );
-			
-			queryCrearSLD.allSolutions();
-			
-			queryCrearSLD.close();
-		
-			
-			Query queryArbol = new Query("arbol", new Term[] {new Atom(sessionID), new Variable("X")});
-			System.out.println("q3 tiene solucion? " + queryArbol.hasSolution());
-			for(Map<String, Term> s : queryArbol.allSolutions()) {
-				System.out.println("X: " + s.get("X").toString());
-				String name = s.get("X").name();
-				
-				if(name.equals("nodo")) {
-					Term[] t = s.get("X").arg(4).toTermArray();
-					for(Term ta: t) {
-						System.out.println("Aux: " + ta.toString());
-					}
-				}
-			}
-			queryArbol.close();
-			
-			Query queryEliminarArbol = new Query("eliminarArbol", new Term[] {new Atom(sessionID)});
-			queryEliminarArbol.allSolutions();
-			queryEliminarArbol.close();
-		}
-		
-		
-		return "inicio";
-	}*/
-	
-	
-//	@RequestMapping("/nextStep")
-//	public @ResponseBody String nextStep(@RequestParam("param1") String param) {
-//		return "Exitoso " + param;
-//	}
 	
 }

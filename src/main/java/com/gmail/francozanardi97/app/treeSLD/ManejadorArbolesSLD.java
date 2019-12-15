@@ -38,7 +38,6 @@ public class ManejadorArbolesSLD {
 	
 	
 	private void cargarMetainterprete(String path) {
-		System.out.println("Path servlet: " + path);
 		Query q = 
 		        new Query( 
 		            "consult", 
@@ -47,9 +46,6 @@ public class ManejadorArbolesSLD {
 		
 		q.oneSolution();
 		
-//		System.out.println("q.hasSolution(): " + q.hasSolution());
-		//esto no solo verifica si existe una solución, sino que también abre la solución encontrada.
-		//por lo tanto es necesario hacerlo.
 		q.close();
 		
 	}
@@ -75,27 +71,13 @@ public class ManejadorArbolesSLD {
 
 		return name;
 	}
-	
-	
-	public ArbolSLD agregarArbolSLD(String name, ProgramaUsuario p) throws Throwable {
-		ArbolSLD arbol = new ArbolSLD	(
-											name,
-											servletContext.getRealPath(PATH_PROLOG_FILES + "/" + name + ".pl"),
-											p
-										);
 		
-		arboles.put(name, arbol);
-
-		return arbol;
-	}
-	
 	public ArbolSLD getArbolSLD(String name) {
 		return arboles.get(name);
 	}
 	
 	public void eliminarArbol(String name) {
 		arboles.remove(name);
-
 	}
 	
 
