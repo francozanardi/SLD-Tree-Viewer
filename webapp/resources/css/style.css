@@ -61,8 +61,6 @@ html, body {
 	margin: auto 4px;
 	text-overflow: ellipsis;
     white-space: nowrap;
-    overflow: hidden; 
-	max-width: 100px;
 }
 
 /* .node p:hover {

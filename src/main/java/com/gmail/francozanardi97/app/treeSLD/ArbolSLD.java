@@ -10,6 +10,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Stack;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -47,9 +48,12 @@ public class ArbolSLD {
 	
 	private Map<String, Term>[] valoresVariables;
 	private int solucionActual;
+	private Map<String, String> repVars;
 	
 	private final static int TIMEOUT_QUERY = 9;
 	
+
+
 	public ArbolSLD(String namePU, String pathPU, ProgramaUsuario pu) throws Throwable {
 		this.fotogramaActual = 0;
 		
@@ -57,9 +61,9 @@ public class ArbolSLD {
 		this.namePU = namePU;
 		this.programaUsuario = pu;
 		
-		mapNodos = new Hashtable<Integer, NodoTree[]>();
-		mapRamas = new Hashtable<Integer, RamaTree[]>();
-		mapRamasCut = new Hashtable<Integer, RamaTree[]>();
+		mapNodos = new Hashtable<>();
+		mapRamas = new Hashtable<>();
+		mapRamasCut = new Hashtable<>();
 		
 		this.solucionActual = 0;
 		
@@ -72,15 +76,21 @@ public class ArbolSLD {
 	private void init() throws Throwable {
 		try {
 			crearArbolSLD();
-			initVariables();
+			//initVariables();
+			Map<String, Term> solFot = Query.oneSolution(String.format("datos('%s', fotogramaActual(FotMax))", namePU));
+			int fotogramaMax = Integer.parseInt(solFot.get("FotMax").toString());
+			
 			
 			int fot = 0;
 			NodoTree[] nodos = {_getRaiz()};
 			RamaTree[] ramas = {};
 			RamaTree[] ramasCut = {};
+			
+			initRepresentacionVars(nodos[0]);
+			replaceRepVars(nodos[0]);
 		
 			
-			while(nodos.length > 0 || ramas.length > 0 || ramasCut.length > 0) {
+			while(fot < fotogramaMax) {
 				mapNodos.put(fot, nodos);
 				mapRamas.put(fot, ramas);
 				mapRamasCut.put(fot, ramasCut);
@@ -94,6 +104,7 @@ public class ArbolSLD {
 			
 		} catch(PrologException e) {
 			System.out.println("Prolog Error -> " + e.getMessage());
+			e.printStackTrace();
 			throw e;
 		} finally {
 			close();
@@ -104,16 +115,16 @@ public class ArbolSLD {
 		
 	}
 	
-	private void initVariables() {
-		try {
-			deleteDynamicPredicates();
-			valoresVariables = Query.allSolutions(String.format("'%s':(%s)", namePU, programaUsuario.getQueryProlog()));
-		} catch(PrologException e) {
-			System.out.println("No se pudieron inicializar las variables debido a una excepción.");
-			System.out.println("-> " + e.getMessage());
-		}
-
-	}
+//	private void initVariables() {
+//		try {
+//			deleteDynamicPredicates();
+//			valoresVariables = Query.allSolutions(String.format("'%s':(%s)", namePU, programaUsuario.getQueryProlog()));
+//		} catch(PrologException e) {
+//			System.out.println("No se pudieron inicializar las variables debido a una excepción.");
+//			System.out.println("-> " + e.getMessage());
+//		}
+//
+//	}
 	
 	private void crearArbolSLD() throws Throwable {
 		cargarUserProgram();
@@ -122,32 +133,22 @@ public class ArbolSLD {
 	
 	private void createQuerySLD() throws Throwable {
 		Query q = new Query(String.format("crearSLD((%s), '%s', '%s')", programaUsuario.getQueryProlog(), namePU, pathPU.replace('\\', '/')));
+		boolean timeout = false;
+		
+		List<Map<String, Term>> sols = new ArrayList<>();
+		
+		long tiempoInicialms = System.currentTimeMillis();
+		while(q.hasMoreSolutions() && !timeout) {
+			sols.add(q.nextSolution());
+			timeout = (tiempoInicialms+(TIMEOUT_QUERY*1000)) <= System.currentTimeMillis();
+		}
 
-				
-		ExecutorService executor = Executors.newCachedThreadPool();
-		Callable<Void> task = new Callable<Void>() {
-			
-			@Override
-			public Void call() {
-				q.allSolutions();
-				return null;
-			}
-		};
-		Future<Void> future = executor.submit(task);
-		try {
-		   future.get(TIMEOUT_QUERY, TimeUnit.SECONDS); 
-		} catch (TimeoutException ex) {
+		
+		if(timeout) {
 			close();
-		   throw new JPLException("Timeout");
-		} catch (InterruptedException e) {
-			close();
-			throw new JPLException("Execution interrumped");
-		} catch (ExecutionException e) {
-			close();
-			throw e.getCause();
-		} finally {
-		   future.cancel(true); // may or may not desire this
-		   //Thread.currentThread().interrupt();
+			throw new JPLException("Timeout");
+		} else {
+			valoresVariables = sols.toArray((Map<String, Term>[]) new Map[sols.size()]);
 		}
 		
 		q.close();
@@ -203,7 +204,7 @@ public class ArbolSLD {
 		return new NodoTree(-1, -1, "[fail]");
 	}
 	
-	public NodoTree[] getNodosActuales() {
+	public NodoTree[] getNodosActuales() {	
 		return mapNodos.get(fotogramaActual);
 	}
 	
@@ -277,7 +278,14 @@ public class ArbolSLD {
 			q.close();
 
 			if(hasSolution) {
-				return "(" + toInfix_(term.arg(1)) + " " + term.name() + " " + toInfix_(term.arg(2)) + ")";
+				String arg1 = toInfix_(term.arg(1));
+				String arg2 = toInfix_(term.arg(2));
+				
+				if(term.name().equals("+") && arg2.charAt(0) == '-') {
+					return "(" + arg1 + " - " + arg2.substring(1) + ")";
+				}
+				
+				return "(" + arg1 + " " + term.name()  + " " + arg2 + ")";
 			} else {
 				return term.name() + "(" + toInfix_(term.arg(1)) + ", " + toInfix_(term.arg(2)) + ")";
 			}
@@ -310,11 +318,208 @@ public class ArbolSLD {
 		
 		return Arrays.toString(inf);
 	}
+
+	
+	
+	private void initRepresentacionVars(NodoTree raiz){
+		String consulta = programaUsuario.getQueryProlog();
+		String rotRaiz = raiz.getRotulo().substring(1, raiz.getRotulo().length()-1);
+		
+		repVars = new Hashtable<>();
+		
+		int c = 0;
+		int r = 0;
+		
+		//System.out.println("consulta: " + consulta);
+		//System.out.println("raiz: " + rotRaiz);
+		
+		String varName;
+		String varRep;
+		while(c < consulta.length() && r < rotRaiz.length()) {
+			if(consulta.charAt(c) != rotRaiz.charAt(r)) {
+				varName = "";
+				varRep = "" + rotRaiz.charAt(r++);
+				
+				for(; r < rotRaiz.length() && Character.isDigit(rotRaiz.charAt(r)); r++) {
+					varRep += rotRaiz.charAt(r);
+				}
+				
+				if(r < rotRaiz.length()) {
+					for(; c < consulta.length() && rotRaiz.charAt(r) != consulta.charAt(c); c++) {
+						varName += consulta.charAt(c);
+					}	
+				} else {
+					varName = consulta.substring(c, consulta.length());
+				}
+
+				
+				//System.out.println("varRep: " + varRep);
+				//System.out.println("varName: " + varName);
+				repVars.put(varRep, varName);
+				
+			}
+			
+			c++;
+			r++;
+		}
+		
+	}
+	
+	private boolean estaEntreComillas(int charIndex, String string) {
+		boolean doblesAbiertas = false;
+		boolean simplesAbiertas = false;
+		
+		if(charIndex >= string.length()) {
+			return false;
+		}
+		
+		int i = 0;
+		while(i < charIndex) {
+			if(string.charAt(i) == '"' && !simplesAbiertas) {
+				doblesAbiertas = !doblesAbiertas;
+			} else if(string.charAt(i) == '\'' && !doblesAbiertas) {
+				simplesAbiertas = !simplesAbiertas;
+			}
+			
+			i++;
+		}
+		
+		return simplesAbiertas || doblesAbiertas;
+	}
+	
+	private void replaceRepVars(NodoTree nodo) {
+		String newRot = "";
+		String rot = nodo.getRotulo();
+		String rep;
+		
+		int i = 0;
+		while(i < rot.length()) {
+			if(rot.charAt(i) == '_' && !estaEntreComillas(i, rot)) {
+				rep = "_";
+				i++;
+				while(i < rot.length() && Character.isDigit(rot.charAt(i))) {
+					rep += rot.charAt(i++);
+				}
+				
+				String varName = repVars.get(rep);
+				if(varName != null) {
+					newRot += varName;
+				} else {
+					newRot += rep;
+				}
+				
+			} else {
+				newRot += rot.charAt(i);
+				i++;
+			}
+			
+			
+		}
+		
+		//System.out.println("Rot: " + rot);
+		//System.out.println("newRot" + newRot);
+		
+		nodo.setRotulo(newRot);
+	}
+	
+//	private void putNodos() {
+//		List<NodoTree> nodos;
+//		//necesitamos hacerlo así, para que las variables manejen la misma representación en prolog y quede más visible para el usuario
+//		Map<String, Term>[] soluciones = Query.allSolutions(String.format("arbol('%s', nodo(IDRaiz, _, 0, RotuloRaiz)); (arbol('%s', nodo(ID, IDPadre, Fotograma, Rotulo)), arbol('%s', rama(IDRama, _, IDPadre, ID, _)))", namePU, namePU, namePU));
+//		int fot;
+//		NodoTree nodo;
+//		Term varFot;
+//		
+//		
+//		for(int s = 0; s < soluciones.length; s++) {
+//			varFot = soluciones[s].get("Fotograma");
+//			
+//			if(!varFot.isVariable()) { // es decir, fue instanciado.
+//				fot = Integer.parseInt(varFot.toString());
+//				nodo = new NodoTree(
+//									Integer.parseInt(soluciones[s].get("ID").toString()),
+//									Integer.parseInt(soluciones[s].get("IDRama").toString()),
+//									soluciones[s].get("Rotulo").name()
+//								);
+//				
+//				nodos = mapNodos.get(fot);
+//				if(nodos != null) {
+//					nodos.add(nodo);
+//				} else {
+//					nodos = new ArrayList<>();
+//					nodos.add(nodo);
+//					mapNodos.put(fot, nodos);
+//				}
+//				
+//				
+//				
+//			} else {
+//				
+//				
+//				nodo = new NodoTree(
+//						Integer.parseInt(soluciones[s].get("IDRaiz").toString()),
+//						-1,
+//						soluciones[s].get("RotuloRaiz").name()
+//					);
+//				
+//				getRepresentacionVariables(programaUsuario.getQueryProlog(), nodo.getRotulo().substring(1, nodo.getRotulo().length()-1));
+//				
+//				nodos = new ArrayList<>();
+//				nodos.add(nodo);
+//				
+//				mapNodos.put(0, nodos);
+//			}
+//			
+//			System.out.println("ROT NODO: " + nodo.getRotulo());
+//
+//		}
+//
+//	}
+	
+//	public void putRamas(int fotMax) {
+//		Map<String, Term>[] soluciones;
+//		RamaTree[] ramas;
+//		
+//		for(int f = 0; f < fotMax; f++) {
+//			soluciones = Query.allSolutions(String.format("arbol('%s', rama(ID, %d, NodoP, NodoH, _))", namePU, f));
+//			ramas = new RamaTree[soluciones.length];
+//			
+//			for(int i = 0; i < soluciones.length; i++) {
+//				ramas[i] = new RamaTree(
+//											Integer.parseInt(soluciones[i].get("ID").toString()),
+//											Integer.parseInt(soluciones[i].get("NodoP").toString()),
+//											Integer.parseInt(soluciones[i].get("NodoH").toString())
+//										);
+//			}
+//			
+//			mapRamas.put(f, ramas);
+//		}
+//
+//	}
+//	
+//	public void putRamasCut(int fotMax) {		
+//		Map<String, Term>[] soluciones;
+//		RamaTree[] ramas;
+//		
+//		for(int f = 0; f < fotMax; f++) {
+//			soluciones = Query.allSolutions(String.format("arbol('%s', rama(ID, _, NodoP, NodoH, %d))", namePU, f));
+//			ramas = new RamaTree[soluciones.length];
+//			
+//			for(int i = 0; i < soluciones.length; i++) {
+//				ramas[i] = new RamaTree(
+//											Integer.parseInt(soluciones[i].get("ID").toString()),
+//											Integer.parseInt(soluciones[i].get("NodoP").toString()),
+//											Integer.parseInt(soluciones[i].get("NodoH").toString())
+//										);
+//			}
+//			
+//			mapRamasCut.put(f, ramas);
+//		}
+//	}
+	
 	
 	private NodoTree _getRaiz() {	
-		Query q = new Query(String.format("arbol('%s', nodo(ID, -1, %d, Rotulo))", namePU, 0));
-
-		Map<String, Term> solucion = q.oneSolution();
+		Map<String, Term> solucion = Query.oneSolution(String.format("arbol('%s', nodo(ID, -1, %d, _, Rotulo))", namePU, 0));
 		
 		NodoTree raiz;
 
@@ -327,18 +532,14 @@ public class ArbolSLD {
 		} else {
 			raiz = new NodoTree(-1, -1, "[fail]");
 		}
-
-		
-		q.close();
 		
 		return raiz;
 	}
 	
-	private NodoTree[] getNodos(int fotograma) {	
-		Query q = new Query(String.format("arbol('%s', nodo(ID, IDPadre, %d, Rotulo)), arbol('%s', rama(IDRama, _, IDPadre, ID, _))", namePU, fotograma, namePU));
-		
-		
-		Map<String, Term>[] soluciones = q.allSolutions();
+	private NodoTree[] getNodos(int fotograma) {
+		//obtenemos todo nodo que no sea raiz
+
+		Map<String, Term>[] soluciones = Query.allSolutions(String.format("arbol('%s', nodo(ID, IDPadre, %d, _, Rotulo)), arbol('%s', rama(IDRama, _, IDPadre, ID, _))", namePU, fotograma, namePU));
 		NodoTree[] nodos = new NodoTree[soluciones.length];
 		
 		for(int i = 0; i < soluciones.length; i++) {
@@ -347,17 +548,16 @@ public class ArbolSLD {
 										Integer.parseInt(soluciones[i].get("IDRama").toString()),
 										termArrayToInfix(soluciones[i].get("Rotulo").toTermArray())
 									);
+			
+			
+			replaceRepVars(nodos[i]);
 		}	
-		
-		q.close();
-		
+
 		return nodos;
 	}
 	
 	private RamaTree[] getRamas(int fotograma) {	
-		Query q = new Query(String.format("arbol('%s', rama(ID, %d, NodoP, NodoH, _))", namePU, fotograma));
-			
-		Map<String, Term>[] soluciones = q.allSolutions();
+		Map<String, Term>[] soluciones = Query.allSolutions(String.format("arbol('%s', rama(ID, %d, NodoP, NodoH, _))", namePU, fotograma));
 		RamaTree[] ramas = new RamaTree[soluciones.length];
 		
 		for(int i = 0; i < soluciones.length; i++) {
@@ -366,18 +566,13 @@ public class ArbolSLD {
 										Integer.parseInt(soluciones[i].get("NodoP").toString()),
 										Integer.parseInt(soluciones[i].get("NodoH").toString())
 									);
-		}	
-		
-		q.close();
+		}
 		
 		return ramas;
 	}
 	
 	private RamaTree[] getRamasCut(int fotograma) {	
-		Query q = new Query(String.format("arbol('%s', rama(ID, _, NodoP, NodoH, %d))", namePU, fotograma));
-		
-		
-		Map<String, Term>[] soluciones = q.allSolutions();
+		Map<String, Term>[] soluciones = Query.allSolutions(String.format("arbol('%s', rama(ID, _, NodoP, NodoH, %d))", namePU, fotograma));
 		RamaTree[] ramas = new RamaTree[soluciones.length];
 		
 		for(int i = 0; i < soluciones.length; i++) {
@@ -387,9 +582,7 @@ public class ArbolSLD {
 										Integer.parseInt(soluciones[i].get("NodoH").toString())
 									);
 		}	
-		
-		q.close();
-		
+
 		return ramas;
 	}
 		

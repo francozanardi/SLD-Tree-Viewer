@@ -24,6 +24,13 @@ var configTreeDefault = {
 			onCreateNode: function(newNode, newNodeDOM) {
 				var redraw = false;
 				var esperando = false;
+				const MAX_WIDTH = '150px';
+				const OVERFLOW = 'hidden';
+				
+				var pdom = $(newNodeDOM.querySelector('p.node-name'));
+				pdom.css({'overflow' : OVERFLOW});
+				pdom.css({'max-width' : MAX_WIDTH});
+				newNode.width = pdom.outerWidth();
 				
 				$(newNodeDOM.querySelector('p.node-name')).hover(function () {
 					var self = this;
@@ -49,8 +56,8 @@ var configTreeDefault = {
 
 				}, function () {
 					if(!esperando){
-						$(this).css({'overflow' : 'hidden'});
-						$(this).css({'max-width' : '100px'});
+						$(this).css({'overflow' : OVERFLOW});
+						$(this).css({'max-width' : MAX_WIDTH});
 						
 						if(redraw){
 							newNode.width = $(this).outerWidth();

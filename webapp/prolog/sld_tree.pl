@@ -16,7 +16,12 @@
 
 % Nueva implementación.
 % arbol(ModuleName, rama(ID, fotogramaAparicion, IDNodoP, IDNodoH, FotogramaCut)) % Si IDNodoH = -1, entonces éste aún no se conoce. Si FotogramaCut = -1 entonces no hay cut.
-% arbol(ModuleName, nodo(ID, IDPadre, fotogramaAparicion, rotulo))
+% arbol(ModuleName, nodo(ID, IDPadre, fotogramaAparicion, varRotulo, atomRotulo))
+% varRotulo será el rótulo pero con las variables sin instanciar que correspondan
+% Sin embargo, en atomRotulo estas variables estarán transformadas a átomos, así podremos tener una visualización
+% más sencilla en el visualizador.
+
+% Dentro del meta-intérprete no se utilizará el atomRotulo, por lo tanto siempre usaremos un functor nodo/4 que exclusa a éste.
 
 % Para distinguir un nodo (o rama) de otro se necesita el ID y el ModuleName.
 
@@ -28,13 +33,21 @@
 agregarNodo(ModuleName, Rotulo, IDNodoP, nodo(IDnew, IDNodoP, Fot, Rotulo)):-
 	datos(ModuleName, fotogramaActual(Fot)),
 	datos(ModuleName, ultimaID_nodo(ID)),
-	IDnew is ID+1,
-	assertz(arbol(ModuleName, nodo(IDnew, IDNodoP, Fot, Rotulo))), % Agregamos efectivamente el nodo.
+	% b_getval(ultimoNodoNoDeshecho, nodo(ID, _, _, _)), 
+	% no podemos usarlo, dado que si se hace backtracking, esto también se deshace
+	% podríamos usar bn_getval/2 para evitar esto... pero, esto provacaría que no conserve la misma representación interna
+	% ya que se hace una copia. Por lo tanto no nos sirve para el objetivo original
 	
+	IDnew is ID+1,
+	
+	vars_to_atom(Rotulo, AtomRotulo),
+	b_setval(ultimoNodoNoDeshecho, nodo(IDnew, IDNodoP, Fot, Rotulo)),
+	
+	assertz(arbol(ModuleName, nodo(IDnew, IDNodoP, Fot, Rotulo, AtomRotulo))), % Agregamos efectivamente el nodo.
+
 	%Actualizamos los datos correspondientes.
 	retract(datos(ModuleName, ultimaID_nodo(ID))),
 	assertz(datos(ModuleName, ultimaID_nodo(IDnew))).
-	
 
 	
 aumentarFotogramaActual(ModuleName):-
@@ -46,7 +59,7 @@ agregarRama(ModuleName, NodoP, NodoH, rama(IDnew, Fot, NodoP, NodoH, -1)):-
 	datos(ModuleName, fotogramaActual(Fot)),
 	datos(ModuleName, ultimaID_rama(ID)),
 	IDnew is ID+1,
-	assertz(arbol(ModuleName, rama(IDnew, Fot, NodoP, NodoH, -1))), % Agregamos efectivamente el nodo.
+	assertz(arbol(ModuleName, rama(IDnew, Fot, NodoP, NodoH, -1))), 
 	
 	%Actualizamos los datos correspondientes.
 	retract(datos(ModuleName, ultimaID_rama(ID))),
@@ -136,7 +149,7 @@ resolverCut(_, nodo(_, _, _, Rotulo), C):-
 	!.
 	
 resolverCut(ModuleName, nodo(_, IDPadre, _, _), C):-
-	arbol(ModuleName, nodo(IDPadre, IDAbuelo, FotPadre, RotuloPadre)), % obtenemos el padre del nodo.
+	arbol(ModuleName, nodo(IDPadre, IDAbuelo, FotPadre, RotuloPadre, _)), % obtenemos el padre del nodo.
 	
 	forall(	
 				arbol(ModuleName, rama(RamaID, RamaFot, IDPadre, -1, -1)), 
@@ -260,9 +273,29 @@ solve((A, B), NodoPadre, ModuleName):-
 	% Aquí tomamos el nodo con mayor ID ya que, A podría haber sido una regla y tomar muchos nodos para solucionarse.
 	% Si se está aquí entonces A se resolvió, y el nodo con ID mayor es quien lo resolvió, entonces este nodo será el padre 
 	% de las conjunciones restantes.
-	getMaxID(ModuleName, UltimaID),
-	arbol(ModuleName, nodo(UltimaID, IDP, Fot, Conj)),
-    solve(B, nodo(UltimaID, IDP, Fot, Conj), ModuleName).
+	b_getval(ultimoNodoNoDeshecho, UltimoNodo),
+	
+	% Antes no usabamos variables globales, pero el problema de esto, es que al querer 
+	% recuperar el nodo con mayor ID desde el árbol, las variables cambian su representación interna en el rótulo.
+	% Esto no tiene inconvenientes en la simulación del árbol, pero al cambiar la representación interna de las variables,
+	% se dificulta mucho más seguir el rastro a las variables.
+	% Ejemplo:
+	% 	Guardabamos nodo(2, 1, 3, [p(_23), q(_23)]), el cual sería el nodo con mayor ID.
+	% Al momento de recuperarlo, tendríamos:
+	% nodo(2, 1, 3, [p(_24), q(_24)]) 
+	% Es decir, Prolog habría modificado la representación interna de las variables no instanciadas.
+	% Nota: (_23 y _24 son usado a modo de ejemplo, no necesariamente tendrán esos mismos números).
+	
+	% Tener en cuenta que al hacer backtracking, UltimoNodo se deshace.
+	% por lo tanto no tiene otra utilidad más que esta.
+	% Sabemos que, el último nodo, en este caso no habrá sido deshecho con un backtracking
+	% dado que si hubiese sido deshecho, no podría estar aquí. 
+	% En otras palabras, al llegar aquí, la finalización del anterior 'solve' fue exitosa
+	% y el valor de UltimoNodo es correcto, ya que viene de una rama no deshecha.
+	% Si hubiese un backtracking, porque B falla, o provocado para generar más soluciones,
+	% estaríamos en las mismas condiciones.
+	
+    solve(B, UltimoNodo, ModuleName).
 	
 solve((\+ A), nodo(IDPadre, _, _, [(\+ A) | RotuloRestante]), ModuleName):-
 	!,
@@ -384,11 +417,16 @@ solve(repeat, nodo(IDPadre, _, _, [repeat | ConjuncionesRestantes]), ModuleName)
 solve(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes]), ModuleName):-
 	predicate_property(ModuleName:A, nodebug),
 	
-	findall(PA, (predicate_property(ModuleName:PA, dynamic), ModuleName:PA), PredDinActuales),
+	% Solo contamos las soluciones de los hechos, ya que si fuese un predicado podría fallar
+	% Por ejemplo, por no estar suficientmente instanciadas las variables.
+	% Esta es una limitación a tener en cuenta del proyecto.
+	
+	findall(PA, (predicate_property(ModuleName:PA, dynamic), clause(ModuleName:PA, true), ModuleName:PA), PredDinActuales),
 	aggregate_all(count, ModuleName:A, C), % C cuenta la cantidad de soluciones que finalizan en 'true' para A, por lo tanto si C > 0, sabemos que A se cumple al menos una vez.
-	findall(PN, (predicate_property(ModuleName:PN, dynamic), ModuleName:PN), PredDinNuevos),
+	findall(PN, (predicate_property(ModuleName:PN, dynamic), clause(ModuleName:PN, true), ModuleName:PN), PredDinNuevos),
 	restablecerPredicadosDinamicos(ModuleName, PredDinActuales, PredDinNuevos),
 	C > 0,
+	
 	
 	datos(ModuleName, ultimaID_rama(IDRamaActual)),
 	IDPrimeraRama is IDRamaActual+1, %Guardamos el ID de la primera rama colocada.
@@ -410,7 +448,7 @@ solve(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes]), ModuleNa
 
 	
 	ModuleName:A,
-	
+
 	
 	% buscamos la rama libre que será en la cual se agregará el nodo, si la rama fue podada entonces no es tenida en cuenta.
 	buscarRamaLibre(ModuleName, RamaLibre, IDPrimeraRama, IDUltimaRama),
@@ -418,7 +456,7 @@ solve(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes]), ModuleNa
 	evaluarCutEnA(ModuleName, A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes])),
 	
 	agregarNodo(ModuleName, ConjuncionesRestantes, IDPadre, nodo(ID, _, _, _)),
-	
+
 	cambiarHijoRama(ModuleName, RamaLibre, ID),
 	aumentarFotogramaActual(ModuleName),
 	
@@ -468,31 +506,38 @@ crearSLD(A, ModuleName, Path):-
 	consult(Path),
 	
 	assertz(datos(ModuleName, fotogramaActual(1))),
-	assertz(datos(ModuleName, ultimaID_nodo(0))),
 	assertz(datos(ModuleName, ultimaID_rama(0))),
+	assertz(datos(ModuleName, ultimaID_nodo(0))),
 	
 	conjuncionesALista(A, Rotulo),
-	assertz(arbol(ModuleName, nodo(0, -1, 0, Rotulo))), % Agregamos la raiz del árbol en el fotograma 0.
+	
+	b_setval(ultimoNodoNoDeshecho, nodo(0, -1, 0, Rotulo)),
+	vars_to_atom(Rotulo, AtomRotulo),
+	assertz(arbol(ModuleName, nodo(0, -1, 0, Rotulo, AtomRotulo))), % Agregamos la raiz del árbol en el fotograma 0.
+	
 	solve(A, nodo(0, -1, 0, Rotulo), ModuleName).
+	% terms_to_atoms_(ModuleName).
 	% findall(ElementoArbol, (arbol(ElementoArbol), writeln(ElementoArbol)), Lista).
 	
 	%unload_file(Path).
 
+% crearSLD(_, M, _):-
+	% terms_to_atoms(M).
 
 
 restablecerPredicadosDinamicos(_, Ant, Ant):- !.
 
 restablecerPredicadosDinamicos(M, Ant, New):-
-	forall(member(PN, New),
+	forall(member(PN, New), retract(M:PN)),
+	% tenemos que hacerlo separado, sino volverías estático un hecho y
+	% si este tuviese distintas soluciones, no podríamos hacerle retract, ya que sería estático.
+	forall(member(PN, New),(
 	(
-		retract(M:PN), 
-		(
-			predicate_property(M:PN, dynamic) ->
-				compile_predicates([M:PN])
-			;
-				true 
-		)
-	)),
+		predicate_property(M:PN, dynamic) ->
+			compile_predicates([M:PN])
+		;
+			true 
+	))),
 	
 	% Procedemos a recuperar el estado anterior, tener en cuenta que utilizamos assertz, dado a que la lista Ant
 	% se encuentra en orden en el que los predicados se hallan.
@@ -504,7 +549,17 @@ restablecerPredicadosDinamicos(M, Ant, New):-
 	%	primero se coloca p(3) al final, luego p(0) al final (tendríamos p(3), p(0)), y por último p(1) 
 	%	(quedando p(3), p(0), p(1)).
 	
-	forall(member(PA, Ant), assertz(M:PA)).
+	forall(member(PA, Ant), 
+	(
+		(
+			predicate_property(M:PN, static) ->
+				dynamic(M:PN)
+			;
+				true 
+		),
+	
+		assertz(M:PA)
+	)).
   
 
 
@@ -517,40 +572,85 @@ conjuncionesALista((A, B), L):-
 	
 conjuncionesALista(A, [A]).
 
-
-
-
-
-
-
-% conjuncionesALista(A, A, Lista):-
-	% A \= (_; _),
-	% conjuncionesALista(A, Lista).
-
-% conjuncionesALista((A; B), A, Lista):-
-	% conjuncionesALista(A, Lista).
-	
-% conjuncionesALista((A; B), R, Lista):-
-	% conjuncionesALista(B, R, Lista).
-
-% conjuncionesALista(Elemento, [Elemento]):-
-	% Elemento \= (_, _).
-
-% conjuncionesALista((X, Xs), [X | Lista]):-
-	% conjuncionesALista(Xs, Lista).
 	
 
 
-% getMaxID(-MaxID)	
-getMaxID(ModuleName, MaxID):-
-	arbol(ModuleName, nodo(MaxID, _, _, _)),
-	esMayor(ModuleName, nodo(MaxID, _, _, _)),
-	!.
-	
-esMayor(ModuleName, nodo(ID, _, _, _)):-
-	forall( (arbol(ModuleName, nodo(IDaux, _, _, _)), ID \= IDaux), IDaux < ID). %Las IDs son únicas.
-	
 eliminarArbol(ModuleName):-
 	retractall(arbol(ModuleName, _)),
 	retractall(datos(ModuleName, _)).
+
+
+
+
+vars_in_compound_to_atom(X, 1, Y):-
+	arg(1, X, V),
+	var(V),
+	!,
+	term_to_atom(V, A),
+	copy_term(X, Y),
+	arg(1, Y, A).
 	
+vars_in_compound_to_atom(X, 1, Y):-
+	arg(1, X, C),
+	compound(C),
+	!,
+	extract_vars_in_compound(C, NC),
+	copy_term(X, Y),
+	arg(1, Y, NC).
+	
+vars_in_compound_to_atom(X, 1, Y):-
+	arg(1, X, A),
+	atomic(A),
+	!,
+	copy_term(X, Y).
+	
+vars_in_compound_to_atom(X, IndexX, Y):-
+	arg(IndexX, X, A),
+	atomic(A),
+	!,
+	NIndexX is IndexX-1,
+	vars_in_compound_to_atom(X, NIndexX, Y).
+	
+vars_in_compound_to_atom(X, IndexX, Y):-
+	arg(IndexX, X, V),
+	var(V),
+	!,
+	term_to_atom(V, A),
+	NIndexX is IndexX-1,
+	vars_in_compound_to_atom(X, NIndexX, Y),
+	arg(IndexX, Y, A).
+	
+vars_in_compound_to_atom(X, IndexX, Y):-
+	arg(IndexX, X, C),
+	compound(C),
+	extract_vars_in_compound(C, NC),
+	NIndexX is IndexX-1,
+	vars_in_compound_to_atom(X, NIndexX, Y),
+	arg(IndexX, Y, NC).
+	
+
+extract_vars_in_compound(X, X):-
+	atomic(X),
+	!.	
+
+extract_vars_in_compound(X, Y):-
+	var(X),
+	term_to_atom(X, Y),
+	!.
+	
+extract_vars_in_compound(X, Y):-
+	compound(X),
+	compound_name_arity(X, _, LX),
+	vars_in_compound_to_atom(X, LX, Y).
+	
+	% arg/3, compound/1, var/1, atom/1, compound_name_arguments/3
+	% term_to_atom/2 para pasar de var a atom.
+
+vars_to_atom([], []):-
+	!.
+	
+vars_to_atom([X | Xs], [Y | Ys]):-
+	% write("Voy a atomizar X: "), write(X), nl,
+	extract_vars_in_compound(X, Y),
+	% write("X atomizado: "), write(X), nl, nl,
+	vars_to_atom(Xs, Ys).

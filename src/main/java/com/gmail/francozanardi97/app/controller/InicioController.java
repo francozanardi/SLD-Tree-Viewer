@@ -110,6 +110,7 @@ public class InicioController {
 		} catch (JPLException e) {
 			error = e.getMessage();
 		} catch (Throwable e) {
+			e.printStackTrace();
 			error = "Fallo inesperado";
 		} 
 		
