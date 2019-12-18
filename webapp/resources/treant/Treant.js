@@ -438,6 +438,7 @@
             this._R = new Raphael( this.drawArea, 100, 100 );
 			
 			this.animacionesEnCurso = 0;
+			this.perfectScrollbar = null;
 
             return this;
         };
@@ -457,9 +458,11 @@
 
 				jq_drawArea.removeClass("Treant");
 				jq_drawArea.removeClass("Treant-loaded");
-				jq_drawArea.removeClass("ps-container");
+				jq_drawArea.removeClass("ps");
 				
-				jq_drawArea.perfectScrollbar('destroy');
+				// jq_drawArea.perfectScrollbar('destroy');
+				this.perfectScrollbar.destroy();
+				this.perfectScrollbar = null;
 			}
 			
             this.reset( this.initJsonConfig, this.initTreeId ).redraw();
@@ -504,8 +507,14 @@
          * @returns {Tree}
          */
         redraw: function() {
-            this.positionTree();
-            return this;
+			var self = this;
+            self.positionTree();
+			
+			setTimeout(function() {
+				self.perfectScrollbar.update();
+			}, Math.max(self.CONFIG.animation.nodeSpeed, self.CONFIG.animation.connectorsSpeed)+100)
+			
+            return self;
         },
 
         /**
@@ -873,13 +882,14 @@
             else if ( this.CONFIG.scrollbar === 'fancy') {
                 var jq_drawArea = $( this.drawArea );
 				
-                if (jq_drawArea.hasClass('ps-container')) { // znaci da je 'fancy' vec inicijaliziran, treba updateat
+                if (jq_drawArea.hasClass('ps')) { // znaci da je 'fancy' vec inicijaliziran, treba updateat
 					jq_drawArea.find('.Treant').css({
                         width: viewWidth,
                         height: viewHeight
                     });
 
-					jq_drawArea.perfectScrollbar('update');	
+					// jq_drawArea.perfectScrollbar('update');
+					this.perfectScrollbar.update();
                 }
                 else {
                     var mainContainer = jq_drawArea.wrapInner('<div class="Treant"/>'),
@@ -889,8 +899,9 @@
                         width: viewWidth,
                         height: viewHeight
                     });
-
-					mainContainer.perfectScrollbar();
+					
+					// mainContainer.perfectScrollbar();
+					this.perfectScrollbar = new PerfectScrollbar('#' + mainContainer[0].id);
                 }
             } // else this.CONFIG.scrollbar == 'None'
 

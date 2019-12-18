@@ -1,5 +1,6 @@
-﻿% Falta analizar el tema del occurs_check y de las sustituciones.
-% Una posibilidad para el tema de las sustituciones es manejarlas vía java.
+﻿% Una posibilidad para el tema de las sustituciones es manejarlas vía java.
+% Tener en cuenta el predicado numbervars/3 que permite "numerar" las variables en un término.
+% podríamos darle una lista con todos los rótulos, para que nos nombre todas las variables.
 
 :- use_module(library(aggregate)).
 :- dynamic datos/2.
@@ -333,8 +334,11 @@ solve(A, nodo(IDPadre, _, _, [A | ConjuncionesRestantes]), ModuleName):-
 
 	% Verificamos que el predicado no sea uno provisto por el sistema (nodebug), en caso de serlo es privado y no podemos acceder a su cuerpo
 	\+(predicate_property(ModuleName:A, nodebug)),
-		
+	
+	write("Voy a resolver, del usuario: "),write(A),nl,
+	
 	aggregate_all(count, clause(ModuleName:A, _), C), %cuento la cantidad de soluciones alternativas que tiene A.
+	write("Tiene C: "),write(C),nl,
 	C > 0,
 	
 	datos(ModuleName, ultimaID_rama(IDRamaActual)),
@@ -417,14 +421,27 @@ solve(repeat, nodo(IDPadre, _, _, [repeat | ConjuncionesRestantes]), ModuleName)
 solve(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes]), ModuleName):-
 	predicate_property(ModuleName:A, nodebug),
 	
-	% Solo contamos las soluciones de los hechos, ya que si fuese un predicado podría fallar
-	% Por ejemplo, por no estar suficientmente instanciadas las variables.
-	% Esta es una limitación a tener en cuenta del proyecto.
-	
-	findall(PA, (predicate_property(ModuleName:PA, dynamic), clause(ModuleName:PA, true), ModuleName:PA), PredDinActuales),
+	findall(PA, 
+		(
+			predicate_property(ModuleName:PAHead, dynamic),
+			clause(ModuleName:PAHead, PABody),
+			PA = [PAHead, PABody]
+		),
+	PredDinActuales),
+
 	aggregate_all(count, ModuleName:A, C), % C cuenta la cantidad de soluciones que finalizan en 'true' para A, por lo tanto si C > 0, sabemos que A se cumple al menos una vez.
-	findall(PN, (predicate_property(ModuleName:PN, dynamic), clause(ModuleName:PN, true), ModuleName:PN), PredDinNuevos),
+
+	findall(PN, 
+		(
+			predicate_property(ModuleName:PNHead, dynamic),
+			clause(ModuleName:PNHead, PNBody),
+			PN = [PNHead, PNBody]
+		),
+	PredDinNuevos),
+
+	
 	restablecerPredicadosDinamicos(ModuleName, PredDinActuales, PredDinNuevos),
+	
 	C > 0,
 	
 	
@@ -467,6 +484,9 @@ solve(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes]), ModuleNa
 % En caso de que A esté definida por el usuario y no se satisfaga entonces backtracking.
 solve(A, nodo(IDPadre, _, _, _), ModuleName):-
 	\+(predicate_property(ModuleName:A, nodebug)),
+	
+	write("Veremos si va a fallar, del usuario: "),write(A),nl,
+	
 	\+(clause(ModuleName:A, _)), % si A no se puede satisfacer con nada entonces falla.
 	!, % por cuestiones de eficiencia.
 	
@@ -528,16 +548,26 @@ crearSLD(A, ModuleName, Path):-
 restablecerPredicadosDinamicos(_, Ant, Ant):- !.
 
 restablecerPredicadosDinamicos(M, Ant, New):-
-	forall(member(PN, New), retract(M:PN)),
+	writeln('son distintos'),
+	forall(member(PN, New), 
+	(
+		PN = [HN, _],
+		retractall(M:HN)
+	)),
+	
+
 	% tenemos que hacerlo separado, sino volverías estático un hecho y
 	% si este tuviese distintas soluciones, no podríamos hacerle retract, ya que sería estático.
-	forall(member(PN, New),(
-	(
-		predicate_property(M:PN, dynamic) ->
-			compile_predicates([M:PN])
-		;
-			true 
-	))),
+	% poner un predicate_property/2 para preguntar si es dinámico no nos va a funcionar, dado que el problema
+	% está en que compile_predicates/1 compila predicados que aún no se hicieron retract.
+
+	forall(member(PN, New),
+	(	
+		PN = [HN, _],
+		compile_predicates([M:HN])
+	)),
+	
+	
 	
 	% Procedemos a recuperar el estado anterior, tener en cuenta que utilizamos assertz, dado a que la lista Ant
 	% se encuentra en orden en el que los predicados se hallan.
@@ -549,16 +579,19 @@ restablecerPredicadosDinamicos(M, Ant, New):-
 	%	primero se coloca p(3) al final, luego p(0) al final (tendríamos p(3), p(0)), y por último p(1) 
 	%	(quedando p(3), p(0), p(1)).
 	
+
 	forall(member(PA, Ant), 
 	(
+		PA = [HA, BA],
+		
 		(
-			predicate_property(M:PN, static) ->
-				dynamic(M:PN)
+			predicate_property(M:HA, static) ->
+				dynamic(M:HA)
 			;
 				true 
 		),
-	
-		assertz(M:PA)
+		
+		assertz(M:(HA :- BA))
 	)).
   
 
@@ -594,7 +627,7 @@ vars_in_compound_to_atom(X, 1, Y):-
 	arg(1, X, C),
 	compound(C),
 	!,
-	extract_vars_in_compound(C, NC),
+	extract_vars_in_term(C, NC),
 	copy_term(X, Y),
 	arg(1, Y, NC).
 	
@@ -623,22 +656,22 @@ vars_in_compound_to_atom(X, IndexX, Y):-
 vars_in_compound_to_atom(X, IndexX, Y):-
 	arg(IndexX, X, C),
 	compound(C),
-	extract_vars_in_compound(C, NC),
+	extract_vars_in_term(C, NC),
 	NIndexX is IndexX-1,
 	vars_in_compound_to_atom(X, NIndexX, Y),
 	arg(IndexX, Y, NC).
 	
 
-extract_vars_in_compound(X, X):-
+extract_vars_in_term(X, X):-
 	atomic(X),
 	!.	
 
-extract_vars_in_compound(X, Y):-
+extract_vars_in_term(X, Y):-
 	var(X),
 	term_to_atom(X, Y),
 	!.
 	
-extract_vars_in_compound(X, Y):-
+extract_vars_in_term(X, Y):-
 	compound(X),
 	compound_name_arity(X, _, LX),
 	vars_in_compound_to_atom(X, LX, Y).
@@ -651,6 +684,6 @@ vars_to_atom([], []):-
 	
 vars_to_atom([X | Xs], [Y | Ys]):-
 	% write("Voy a atomizar X: "), write(X), nl,
-	extract_vars_in_compound(X, Y),
+	extract_vars_in_term(X, Y),
 	% write("X atomizado: "), write(X), nl, nl,
 	vars_to_atom(Xs, Ys).

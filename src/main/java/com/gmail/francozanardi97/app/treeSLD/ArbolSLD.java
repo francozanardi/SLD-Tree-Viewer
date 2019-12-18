@@ -48,7 +48,9 @@ public class ArbolSLD {
 	
 	private Map<String, Term>[] valoresVariables;
 	private int solucionActual;
+	
 	private Map<String, String> repVars;
+	private String varName;
 	
 	private final static int TIMEOUT_QUERY = 9;
 	
@@ -66,6 +68,7 @@ public class ArbolSLD {
 		mapRamasCut = new Hashtable<>();
 		
 		this.solucionActual = 0;
+		this.varName = "";
 		
 		init();
 		
@@ -86,9 +89,7 @@ public class ArbolSLD {
 			RamaTree[] ramas = {};
 			RamaTree[] ramasCut = {};
 			
-			initRepresentacionVars(nodos[0]);
-			replaceRepVars(nodos[0]);
-		
+
 			
 			while(fot < fotogramaMax) {
 				mapNodos.put(fot, nodos);
@@ -247,7 +248,7 @@ public class ArbolSLD {
 		
 		
 		if(term.arity() == 1) {
-			q = new Query(String.format("current_op(_, fy, %s); current_op(_, fx, %s)", term.name(), term.name()));
+			q = new Query(String.format("current_op(_, fy, '%s'); current_op(_, fx, '%s')", term.name(), term.name()));
 			hasSolution = q.hasSolution();
 			q.close();
 			
@@ -317,6 +318,51 @@ public class ArbolSLD {
 		}
 		
 		return Arrays.toString(inf);
+	}
+	
+	private void updateVarName() {
+		if(varName.length() == 0) {
+			varName = "A";
+			if(repVars.get(varName) != null) {
+				updateVarName();
+			}
+			
+		} else {
+			
+			int i = varName.length()-1;
+			char ultimoChar;
+			boolean huboReemplazo = false;
+			
+			while(i >= 0) {
+				ultimoChar = varName.charAt(i);
+				
+				if(ultimoChar == 90) {
+					varName = varName.substring(0, i) + 'A' + varName.substring(i+1);
+					huboReemplazo = true;
+				} else {
+					break;
+				}
+				
+				
+				i--;
+			}
+			
+			ultimoChar = varName.charAt(varName.length()-1);
+			char newChar = (char) (ultimoChar+1);
+			
+			if(huboReemplazo) {
+				varName += newChar;
+			} else {
+				varName = varName.substring(0, varName.length()-1) + newChar;
+			}
+			
+			
+			if(repVars.get(varName) != null) {
+				updateVarName();
+			}
+		}
+
+		
 	}
 
 	
@@ -401,11 +447,13 @@ public class ArbolSLD {
 					rep += rot.charAt(i++);
 				}
 				
-				String varName = repVars.get(rep);
-				if(varName != null) {
-					newRot += varName;
+				String var = repVars.get(rep);
+				if(var != null) {
+					newRot += var;
 				} else {
-					newRot += rep;
+					updateVarName();
+					newRot += varName;
+					repVars.put(rep, varName);
 				}
 				
 			} else {
@@ -529,6 +577,9 @@ public class ArbolSLD {
 					-1,
 					termArrayToInfix(solucion.get("Rotulo").toTermArray())
 				);
+			
+			initRepresentacionVars(raiz);
+			replaceRepVars(raiz);
 		} else {
 			raiz = new NodoTree(-1, -1, "[fail]");
 		}

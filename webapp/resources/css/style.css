@@ -72,7 +72,7 @@ html, body {
 /* Fullcreen */
 
 .fullScreen {
-	background-color: white;
+	background-color: transparent;
 	border: none;
 	position: absolute;
 	left:    0;
@@ -116,7 +116,7 @@ html, body {
 
 /* report */
 .report {
-	background-color: white;
+	background-color: transparent;
 	border: none;
 	position: absolute;
 	right:    0;

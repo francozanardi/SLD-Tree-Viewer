@@ -2,6 +2,7 @@ var myID = null;
 var treant = null;
 var mapNodos = new Map(); //mapeo desde id nodo a objeto TreeNode
 var mapRamasDisponibles = new Map();
+var cantSoluciones = 0;
 //mapeo que contiene solo las ramas sin nodos hijos,
 //es decir el mapeo va desde id rama a objeto TreeNode, el cual es un nodo invisible.
 
@@ -64,8 +65,6 @@ var configTreeDefault = {
 							newNode.getTree().redraw();
 							redraw = false;
 						}
-						
-						hayCambios = false;
 					}
 					
 					esperando = false;
@@ -105,7 +104,28 @@ window.onbeforeunload = function(event) {
 	}
 }
 
+$('#statusButton').click(() => {
+	var ultimoNodo = Array.from(mapNodos.values()).pop();
+	ultimoNodo = {rotulo: ultimoNodo.text.name};
 
+	var status = "Running";
+
+	if(esNodoSolucion(ultimoNodo)){
+		status = "Waiting";
+
+		if(arbolFinalizado(ultimoNodo)){
+			status = "Finished";
+		}
+	}
+
+	$('#estadoArbol').text(status);
+	$('#cantidadNodos').text(mapNodos.size);
+	$('#cantidadSoluciones').text(cantSoluciones);
+
+	$('#statusModal').modal('show');
+
+	
+});
 
 $('#optionsButton').click(() => {
 	$('#modalOptions').modal('show');
@@ -122,9 +142,12 @@ $('#stopButton').click(() => {
 
 		document.getElementById("nextStepButton").style.display = "none";
 		document.getElementById("skipButton").style.display = "none";
+		document.getElementById("skipAllButton").style.display = "none";
+		document.getElementById("statusButton").style.display = "none";
 		
 		mapRamasDisponibles.clear();
 		mapNodos.clear();
+		cantSoluciones = 0;
 		
 		myID = null;
 
@@ -147,18 +170,7 @@ $('#nextButton').click(() => {
 	})
 	.then(nodos => {
 		graficarNodos(nodos);
-		
-		if(nodos[0].rotulo === "[]"){ //es la cláusula vacía
-			if(mapRamasDisponibles.size > 0){
-				$('#nextButton').attr("disabled", false);
-			}
-			desactivarControlesNext();
-			agregarSolucion(nodos[0]);
-		} else if(nodos[0].rotulo === "[fail]" && mapRamasDisponibles.size == 0){
-			desactivarControlesNext();
-		} else {
-			activarControlesNext();
-		}
+		actualizarControles(nodos[0]);
 	});
 	
 	
@@ -172,45 +184,40 @@ $('#skipButton').click(() => {
 		treant.tree.CONFIG.animation.connectorsSpeed = SPEED_ANIMATION;
 		treant.tree.CONFIG.animation.nodeSpeed = SPEED_ANIMATION;
 
-		if(nodos.length == 1 && nodos[0].rotulo === "[]"){ //es la cláusula vacía
-			desactivarControlesNext();
-			agregarSolucion(nodos[0]);
-			
-			if(mapRamasDisponibles.size > 0){
-				document.getElementById("nextButton").disabled = false;
-			}
-		} else if(nodos.length == 1 && nodos[0].rotulo === "[fail]" && mapRamasDisponibles.size == 0){
-			desactivarControlesNext();
+		if(nodos.length == 1){
+			actualizarControles(nodos[0]);
 		}
+
 	});
 
 });
 
+$('#skipAllButton').click(() => {
+	treant.tree.CONFIG.animation.connectorsSpeed = 0;
+	treant.tree.CONFIG.animation.nodeSpeed = 0;
 
+	desactivarControlesNext();
+	$('#statusButton').attr("disabled", true);
+	
+	finalizarArbol((ultimoNodo) => {
+		treant.tree.CONFIG.animation.connectorsSpeed = SPEED_ANIMATION;
+		treant.tree.CONFIG.animation.nodeSpeed = SPEED_ANIMATION;
+
+		actualizarControles(ultimoNodo);
+		$('#statusButton').attr("disabled", false);
+	});
+
+});
 
 $('#nextStepButton').click(() => {
 	desactivarControlesNext();
 
 	nextFotograma((nodos) => {
 		var interval = setInterval(function() {
-			let seDesactivaronControles = false;
 
 			if(treant.tree.animacionesEnCurso == 0){
-				if(nodos.length == 1 && nodos[0].rotulo === "[]"){ //es la cláusula vacía
-					desactivarControlesNext();
-					seDesactivaronControles = true;
-					agregarSolucion(nodos[0]);
-					
-					if(mapRamasDisponibles.size > 0){
-						document.getElementById("nextButton").disabled = false;
-					}
-				} else if(nodos.length == 1 && nodos[0].rotulo === "[fail]" && mapRamasDisponibles.size == 0){
-					desactivarControlesNext();
-					seDesactivaronControles = true;
-				}
-
-				if(!seDesactivaronControles){
-					activarControlesNext();
+				if(nodos.length == 1){
+					actualizarControles(nodos[0]);
 				}
 				
 				clearInterval(interval);
@@ -246,10 +253,14 @@ $('#program').submit(
 		
 					document.getElementById("nextStepButton").style.display = "block";
 					document.getElementById("skipButton").style.display = "block";
+					document.getElementById("skipAllButton").style.display = "block";
+					document.getElementById("statusButton").style.display = "block";
 					
 					document.getElementById("nextButton").disabled = true;
 					document.getElementById("nextStepButton").disabled = false;
 					document.getElementById("skipButton").disabled = false;
+					document.getElementById("skipAllButton").disabled = false;
+					document.getElementById("statusButton").disabled = false;
 
 
 				})
@@ -263,11 +274,50 @@ $('#program').submit(
 		}
 );
 
+function finalizarArbol(callback){
+	nextFotograma((nodos) => {
+		if(nodos.length === 1){
+			if(!esNodoSolucion(nodos[0]) && !arbolFinalizado(nodos[0])){
+				finalizarArbol(callback);
+			} else {
+				if(callback && typeof(callback) === "function"){
+					callback(nodos[0]);
+				}
+			}
+		} else {
+			finalizarArbol(callback);
+		}
+	});
+}
+
+function actualizarControles(ultimoNodo){
+	if(esNodoSolucion(ultimoNodo)){
+		desactivarControlesNext();
+		agregarSolucion(ultimoNodo);
+
+		if(!arbolFinalizado(ultimoNodo)){
+			$('#nextButton').attr("disabled", false);
+		} 
+	} else if(arbolFinalizado(ultimoNodo)){
+		desactivarControlesNext();
+	} else {
+		activarControlesNext();
+	}
+}
+
+function esNodoSolucion(nodo){
+	return nodo.rotulo === "[]";
+}
+
+function arbolFinalizado(ultimoNodo){
+	return (esNodoSolucion(ultimoNodo) || ultimoNodo.rotulo === "[fail]") && mapRamasDisponibles.size === 0;
+}
 
 function agregarSolucion(nodo){
+	cantSoluciones++;
 	$.post('getSolucion', 'id='+myID, (solucion) => {
 		
-		if(solucion.rotulo !== "" && solucion.rotulo !== "[]"){
+		if(solucion && solucion.rotulo !== "" && solucion.rotulo !== "[]"){
 			var nodoSolucion = {
 					text: {
 						name: solucion.rotulo
@@ -356,6 +406,9 @@ function graficarNodos(nodos){
 		
 		let nodoInvisible = mapRamasDisponibles.get(nodo.idRama);
 		
+		nodoInvisible.nodeHTMLclass = "";
+		nodoInvisible.nodeHTMLid = "nodo_" + nodo.id;
+
 		nodoInvisible.nodeDOM.id = "nodo_" + nodo.id;
 		$(nodoInvisible.nodeDOM).removeClass('nodo_invisible');
 		/*
@@ -466,11 +519,13 @@ function configButtons_fullScreen(){
 function activarControlesNext(){
 	$('#nextStepButton').attr("disabled", false);
 	$('#skipButton').attr("disabled", false);
+	$('#skipAllButton').attr("disabled", false);
 }
 
 function desactivarControlesNext(){
 	$('#nextStepButton').attr("disabled", true);
 	$('#skipButton').attr("disabled", true);
+	$('#skipAllButton').attr("disabled", true);
 }
 
 $("#reportSend").click(() => {
