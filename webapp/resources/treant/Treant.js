@@ -889,7 +889,7 @@
                     });
 
 					// jq_drawArea.perfectScrollbar('update');
-					this.perfectScrollbar.update();
+					// this.perfectScrollbar.update();
                 }
                 else {
                     var mainContainer = jq_drawArea.wrapInner('<div class="Treant"/>'),
