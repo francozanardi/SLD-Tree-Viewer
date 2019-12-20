@@ -163,6 +163,8 @@ $('#stopButton').click(() => {
 $('#nextButton').click(() => {
 
 	$('#nextButton').attr("disabled", true);
+	treant.tree.CONFIG.animation.connectorsSpeed = 0;
+	treant.tree.CONFIG.animation.nodeSpeed = 0;
 	
 	$.post('avanzarFotograma', 'id='+myID)
 	.then(fotActual => {
@@ -171,6 +173,9 @@ $('#nextButton').click(() => {
 	.then(nodos => {
 		graficarNodos(nodos);
 		actualizarControles(nodos[0]);
+		
+		treant.tree.CONFIG.animation.connectorsSpeed = SPEED_ANIMATION;
+		treant.tree.CONFIG.animation.nodeSpeed = SPEED_ANIMATION;
 	});
 	
 	

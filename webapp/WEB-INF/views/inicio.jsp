@@ -115,11 +115,11 @@ Adem�s minimizar los archivos js utilizados, especialmente codemirror.js. Mira
 
 					</div>
 
-					<button class="fullScreen" id="fullScreenButton">
+					<button class="buttonInViewer" id="fullScreenButton">
 						<img src="resources/img/fullscreen.svg">
 					</button>
 
-					<button class="report" id="reportButton" data-toggle="modal" data-target="#reportModal">
+					<button class="buttonInViewer" id="reportButton" data-toggle="modal" data-target="#reportModal">
 						<img src="resources/img/report.svg">
 					</button>
 

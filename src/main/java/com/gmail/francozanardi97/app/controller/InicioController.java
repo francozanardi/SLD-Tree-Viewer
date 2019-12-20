@@ -53,36 +53,10 @@ public class InicioController {
 	private ManejadorArbolesSLD manejadorArbol;
 
 	@RequestMapping(value="/", method=RequestMethod.GET)
-	public String prepararForm(Model model) {
+	public String getInicio(Model model) {
+		return "inicio";
+	}
 		
-		System.out.println("session: " + RequestContextHolder.currentRequestAttributes().getSessionId());
-
-		return "inicio";
-	}
-	
-	
-	//funciona
-	@RequestMapping(value="/p", method=RequestMethod.POST)
-	public String testPost(@ModelAttribute Test test) {
-		System.out.println("test: " + test.getStr());
-		System.out.println("Hola :D");
-		return "inicio";
-	}
-	
-	//funciona con: $.post('q', 'str=hola :v', function(obj){console.log('-> ', obj);});
-	@RequestMapping(value="/q", method=RequestMethod.POST)
-	public @ResponseBody Test testPost2(@ModelAttribute Test tRecibido) {
-		Test test = new Test();
-		test.setStr("jeje " + tRecibido.getStr());
-		System.out.println("Hola XD " + tRecibido.getStr());
-		return test;
-	}
-	
-	@RequestMapping(value="/q", method=RequestMethod.GET)
-	public String testGet2() {
-		return "q";
-	}
-	
 	@RequestMapping("/getModulos")
 	public @ResponseBody void getModulos() {
 		Query q = new Query("arbol(M, _)");

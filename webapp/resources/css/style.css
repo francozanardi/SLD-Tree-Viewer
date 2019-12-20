@@ -68,31 +68,35 @@ html, body {
 	max-width: fit-content;
 } */
 
-
-/* Fullcreen */
-
-.fullScreen {
+.buttonInViewer {
 	background-color: transparent;
 	border: none;
 	position: absolute;
-	left:    0;
-	top:   0;
 	padding: 0px;
-    margin: 2px 5px;
 	z-index: 99;
 	
 	display: none;
 }
 
-.fullScreen img {
+.buttonInViewer img {
 	opacity: 50%;
 	z-index: 100;
 }
 
-.fullScreen img:hover {
+.buttonInViewer img:hover {
 	opacity: 100%;
 	z-index: 100;
 }
+
+
+/* Fullcreen */
+
+#fullScreenButton {
+	left: 0;
+	top: 0;
+    margin: 2px 5px;
+}
+
 
 /* Chrome, Safari and Opera syntax */
 :-webkit-full-screen {
@@ -115,27 +119,10 @@ html, body {
 }
 
 /* report */
-.report {
-	background-color: transparent;
-	border: none;
-	position: absolute;
+#reportButton {
 	right:    0;
 	top:   0;
-	padding: 0px;
     margin: 2px 13px;
-	z-index: 99;
-	
-	display: none;
-}
-
-.report img {
-	opacity: 50%;
-	z-index: 100;
-}
-
-.report img:hover {
-	opacity: 100%;
-	z-index: 100;
 }
 
 #reportDescription {
