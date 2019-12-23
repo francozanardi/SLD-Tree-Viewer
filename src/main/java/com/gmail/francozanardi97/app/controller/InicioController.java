@@ -38,6 +38,7 @@ import com.gmail.francozanardi97.app.domain.NotificacionError;
 import com.gmail.francozanardi97.app.dto.NodoTree;
 import com.gmail.francozanardi97.app.dto.ProgramaUsuario;
 import com.gmail.francozanardi97.app.dto.RamaTree;
+import com.gmail.francozanardi97.app.dto.SustitutionTree;
 import com.gmail.francozanardi97.app.service.ServiceNotificacionError;
 import com.gmail.francozanardi97.app.treeSLD.ArbolSLD;
 import com.gmail.francozanardi97.app.treeSLD.ManejadorArbolesSLD;
@@ -181,6 +182,17 @@ public class InicioController {
 		}
 		
 		return new ResponseEntity<>(new RamaTree[] {}, HttpStatus.BAD_REQUEST);	
+	}
+	
+	@RequestMapping(value="/getSustituciones", method=RequestMethod.POST)
+	public @ResponseBody ResponseEntity<SustitutionTree[]> getSustituciones(@RequestParam("id") String id) {
+		ArbolSLD arbol =  manejadorArbol.getArbolSLD(id);
+		
+		if(arbol != null) {
+			return new ResponseEntity<>(arbol.getSustitucionesActuales(), HttpStatus.OK);
+		}
+		
+		return new ResponseEntity<>(new SustitutionTree[] {}, HttpStatus.BAD_REQUEST);	
 	}
 	
 	@RequestMapping(value="/eliminarArbol", method=RequestMethod.POST)

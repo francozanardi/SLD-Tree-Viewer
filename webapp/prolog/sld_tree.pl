@@ -21,6 +21,7 @@
 % varRotulo será el rótulo pero con las variables sin instanciar que correspondan
 % Sin embargo, en atomRotulo estas variables estarán transformadas a átomos, así podremos tener una visualización
 % más sencilla en el visualizador.
+% arbol(ModuleName, sustitucion(ID, fotogramaAparicion, IDRama, atomSustitucion))
 
 % Dentro del meta-intérprete no se utilizará el atomRotulo, por lo tanto siempre usaremos un functor nodo/4 que exclusa a éste.
 
@@ -69,6 +70,16 @@ agregarRama(ModuleName, NodoP, NodoH, rama(IDnew, Fot, NodoP, NodoH, -1)):-
 agregarRamas(ModuleName, Cant, NodoP):-
 	forall( between(1, Cant, _), agregarRama(ModuleName, NodoP, -1, _)).
 
+
+agregarSustitucion(ModuleName, rama(IDRama, _, _, _, -1), Sust):-
+	datos(ModuleName, fotogramaActual(Fot)),
+	datos(ModuleName, ultimaID_sustitucion(ID)),
+	IDnew is ID+1,
+	assertz(arbol(ModuleName, sustitucion(IDnew, Fot, IDRama, Sust))), 
+	
+	%Actualizamos los datos correspondientes.
+	retract(datos(ModuleName, ultimaID_sustitucion(ID))),
+	assertz(datos(ModuleName, ultimaID_sustitucion(IDnew))).
 
 % Se crea una primera rama de un repeat y con ello se utiliza esa ID de la rama como ID del repeat.
 % crearRamaRepeat(+NodoP, +NodoH, -IDRepeat)
@@ -348,10 +359,22 @@ solve(A, nodo(IDPadre, _, _, [A | ConjuncionesRestantes]), ModuleName):-
 	
 	datos(ModuleName, ultimaID_rama(IDUltimaRama)), %Guardamos el ID de la última rama colocada.
 	
+
+	copy_term(A, ACopy),
+	unifiable(A, ACopy, Sust),
+	vars_to_atom(Sust, SustAtom),
+	
 	!, % Si C > 0, entonces existe algún cuerpo posible, borramos toda solución alternativa de 'solve' para mayor eficiencia.
-    clause(ModuleName:A, B),
+	
+	clause(ModuleName:A, B),
+	
+	unifiable(A, ACopy, SustNew),
+	vars_to_atom(SustNew, SustNewAtom),
+	componer(SustNewAtom, SustAtom, Comp),
+	write("Comp: "),write(Comp),nl,
 	
 	buscarRamaLibre(ModuleName, RamaLibre, IDPrimeraRama, IDUltimaRama), 
+	agregarSustitucion(ModuleName, RamaLibre, Comp),
 	% buscamos la rama libre que ocupará el nuevo nodo.
 	% Si las ramas han sido podadas entonces no serán tenidas en cuenta como libres.
 	
@@ -452,7 +475,7 @@ solve(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes]), ModuleNa
 	
 	datos(ModuleName, ultimaID_rama(IDUltimaRama)), %Guardamos el ID de la última rama colocada.
 	
-	!, % Como C > 0, borramos toda solución alternativa de 'solve' para mayor eficiencia.
+	
 	
 	% En el caso de un assert, no podemos invocar directamente A, dado que el aggregate_all ya invoca a todas las alternativas de A.
 	% Esto trae problemas notorios en los assert, dado que se invocan dos veces: en el aggregate_all y con A de nuevo.
@@ -463,12 +486,22 @@ solve(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes]), ModuleNa
 	%	call(assertz(p), X is 5)
 	% No podríamos en este caso simular C ramas alternativas utilizando un between/3 u otro predicado, dado que no se "incializaría" X.
 
+	copy_term(A, ACopy),
+	unifiable(A, ACopy, Sust),
+	vars_to_atom(Sust, SustAtom),
+	
+	!, % Como C > 0, borramos toda solución alternativa de 'solve' para mayor eficiencia.
 	
 	ModuleName:A,
 
+	unifiable(A, ACopy, SustNew),
+	vars_to_atom(SustNew, SustNewAtom),
+	componer(SustNewAtom, SustAtom, Comp),
+	write("Comp: "),write(Comp),nl,
 	
 	% buscamos la rama libre que será en la cual se agregará el nodo, si la rama fue podada entonces no es tenida en cuenta.
 	buscarRamaLibre(ModuleName, RamaLibre, IDPrimeraRama, IDUltimaRama),
+	agregarSustitucion(ModuleName, RamaLibre, Comp),
 
 	evaluarCutEnA(ModuleName, A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes])),
 	
@@ -528,6 +561,7 @@ crearSLD(A, ModuleName, Path):-
 	assertz(datos(ModuleName, fotogramaActual(1))),
 	assertz(datos(ModuleName, ultimaID_rama(0))),
 	assertz(datos(ModuleName, ultimaID_nodo(0))),
+	assertz(datos(ModuleName, ultimaID_sustitucion(0))),
 	
 	conjuncionesALista(A, Rotulo),
 	
@@ -687,3 +721,16 @@ vars_to_atom([X | Xs], [Y | Ys]):-
 	extract_vars_in_term(X, Y),
 	% write("X atomizado: "), write(X), nl, nl,
 	vars_to_atom(Xs, Ys).
+
+
+componer([], [], []):-
+	!.
+
+componer([X | Xs], [X | Ys], [X | Rs]):-
+	!,
+	componer(Xs, Ys, Rs).
+	
+componer([A = B | Xs], [A = C | Ys], [C = B | Rs]):-
+	!,
+	componer(Xs, Ys, Rs).
+	

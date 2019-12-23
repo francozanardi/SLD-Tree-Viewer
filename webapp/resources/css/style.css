@@ -50,6 +50,13 @@ html, body {
 	color: #FFFFFF;
 	border-color: #FFFFFF;
 	z-index: -1;
+	
+	/* pointer-events: none; */
+	-moz-user-select: -moz-none;
+    -khtml-user-select: none;
+    -webkit-user-select: none;
+    -o-user-select: none;
+    user-select: none;
 }
 
 .node p {

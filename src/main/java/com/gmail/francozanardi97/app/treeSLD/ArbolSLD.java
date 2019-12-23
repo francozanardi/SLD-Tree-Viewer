@@ -6,34 +6,16 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Hashtable;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Stack;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
-import org.jpl7.Atom;
-import org.jpl7.Compound;
 import org.jpl7.JPLException;
 import org.jpl7.PrologException;
-import org.jpl7.Util;
 import org.jpl7.Query;
 import org.jpl7.Term;
-import org.jpl7.Variable;
-import org.jpl7.fli.Prolog;
-import org.jpl7.fli.term_t;
-import org.springframework.stereotype.Component;
 
-import com.gmail.francozanardi97.app.dto.NodoTree;
-import com.gmail.francozanardi97.app.dto.ProgramaUsuario;
-import com.gmail.francozanardi97.app.dto.RamaTree;
+import com.gmail.francozanardi97.app.dto.*;
 
 public class ArbolSLD {
 	
@@ -45,6 +27,7 @@ public class ArbolSLD {
 	private Map<Integer, NodoTree[]> mapNodos;
 	private Map<Integer, RamaTree[]> mapRamas;
 	private Map<Integer, RamaTree[]> mapRamasCut;
+	private Map<Integer, SustitutionTree[]> mapSustitutions;
 	
 	private Map<String, Term>[] valoresVariables;
 	private int solucionActual;
@@ -66,6 +49,7 @@ public class ArbolSLD {
 		mapNodos = new Hashtable<>();
 		mapRamas = new Hashtable<>();
 		mapRamasCut = new Hashtable<>();
+		mapSustitutions = new Hashtable<>();
 		
 		this.solucionActual = 0;
 		this.rotuloParser = new RotuloParser();
@@ -86,6 +70,7 @@ public class ArbolSLD {
 			NodoTree[] nodos = {_getRaiz()};
 			RamaTree[] ramas = {};
 			RamaTree[] ramasCut = {};
+			SustitutionTree[] susts = {};
 			
 			rotuloParser.init(nodos[0], programaUsuario);
 			nodos[0].setRotulo(rotuloParser.replaceRepVars(nodos[0].getRotulo()));
@@ -95,11 +80,13 @@ public class ArbolSLD {
 				mapNodos.put(fot, nodos);
 				mapRamas.put(fot, ramas);
 				mapRamasCut.put(fot, ramasCut);
+				mapSustitutions.put(fot, susts);
 				
 				fot++;
 				nodos = getNodos(fot);
 				ramas = getRamas(fot);
 				ramasCut = getRamasCut(fot);
+				susts = getSustitutions(fot);
 
 			}
 			
@@ -204,6 +191,10 @@ public class ArbolSLD {
 		return mapRamasCut.get(fotogramaActual);
 	}
 	
+	public SustitutionTree[] getSustitucionesActuales() {
+		return mapSustitutions.get(fotogramaActual);
+	}
+	
 	public NodoTree getSolucion() {
 		if(valoresVariables != null && solucionActual < valoresVariables.length) {
 			Map<String, Term> solActual = valoresVariables[solucionActual++];
@@ -211,7 +202,7 @@ public class ArbolSLD {
 			String[] rot = new String[solActual.size()];
 			int i = 0;
 			for(Entry<String, Term> e: solActual.entrySet()) {
-				rot[i++] = e.getKey() + ":" + e.getValue().toString();
+				rot[i++] = e.getKey() + " = " + e.getValue().toString();
 			}
 			
 			return new NodoTree(-1, -1, Arrays.toString(rot));
@@ -288,6 +279,23 @@ public class ArbolSLD {
 		}	
 
 		return ramas;
+	}
+	
+	private SustitutionTree[] getSustitutions(int fotograma) {	
+		Map<String, Term>[] soluciones = Query.allSolutions(String.format("arbol('%s', sustitucion(ID, %d, IDRama, Sust)), arbol('%s', rama(IDRama, _, _, IDNodo, _))", namePU, fotograma, namePU));
+		SustitutionTree[] sustitutions = new SustitutionTree[soluciones.length];
+		
+		for(int i = 0; i < soluciones.length; i++) {
+			sustitutions[i] = new SustitutionTree(
+										Integer.parseInt(soluciones[i].get("ID").toString()),
+										Integer.parseInt(soluciones[i].get("IDNodo").toString()),
+										rotuloParser.termArrayToInfix(soluciones[i].get("Sust").toTermArray())
+									);
+			
+			sustitutions[i].setSustitution(rotuloParser.parseSustitution(sustitutions[i].getSustitution()));
+		}	
+
+		return sustitutions;
 	}
 		
 }

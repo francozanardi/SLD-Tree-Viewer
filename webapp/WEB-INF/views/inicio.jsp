@@ -181,6 +181,23 @@ Adem�s minimizar los archivos js utilizados, especialmente codemirror.js. Mira
 					</div>
 				</div>
 
+				<!-- Modal -->
+				<div class="modal fade" id="sustitucionModel" tabindex="-1" role="dialog" aria-hidden="true">
+					<div class="modal-dialog modal-dialog-centered modal-sm" role="document">
+					<div class="modal-content">
+						<div class="modal-header">
+						<h5 class="modal-title">Sustitutions</h5>
+						<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+							<span aria-hidden="true">&times;</span>
+						</button>
+						</div>
+						<div class="modal-body">
+							<span class = "text-monospace"><strong>S<sub id="subIndiceSust">i</sub></strong> = <span id="sustitucionText"></span></span>
+						</div>
+					</div>
+					</div>
+				</div>
+
 				<script>
 					document.getElementById("nextStepButton").style.display = "none";
 					document.getElementById("statusButton").style.display = "none";

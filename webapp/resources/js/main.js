@@ -2,9 +2,9 @@ var myID = null;
 var treant = null;
 var mapNodos = new Map(); //mapeo desde id nodo a objeto TreeNode
 var mapRamasDisponibles = new Map();
-var cantSoluciones = 0;
 //mapeo que contiene solo las ramas sin nodos hijos,
 //es decir el mapeo va desde id rama a objeto TreeNode, el cual es un nodo invisible.
+var cantSoluciones = 0;
 
 const SPEED_ANIMATION = 500;
 
@@ -161,22 +161,28 @@ $('#stopButton').click(() => {
 });
 
 $('#nextButton').click(() => {
-
+	var nodoAgregado;
 	$('#nextButton').attr("disabled", true);
 	treant.tree.CONFIG.animation.connectorsSpeed = 0;
 	treant.tree.CONFIG.animation.nodeSpeed = 0;
 	
 	$.post('avanzarFotograma', 'id='+myID)
-	.then(fotActual => {
+	.then(() => {
 		return $.post('getNodos', 'id='+myID);
 	})
 	.then(nodos => {
 		graficarNodos(nodos);
-		actualizarControles(nodos[0]);
+		nodoAgregado = nodos[0];
+
+		return $.post('getSustituciones', 'id='+myID);
+	})
+	.then(sustituciones => {
+		graficarSustituciones(sustituciones);
+		actualizarControles(nodoAgregado);
 		
 		treant.tree.CONFIG.animation.connectorsSpeed = SPEED_ANIMATION;
 		treant.tree.CONFIG.animation.nodeSpeed = SPEED_ANIMATION;
-	});
+	})
 	
 	
 });
@@ -339,6 +345,8 @@ function agregarSolucion(nodo){
 
 
 function nextFotograma(callback){
+	var argCallback;
+
 	$.post('avanzarFotograma', 'id='+myID)
 	.then(() => {
 		return $.post('getRamas', 'id='+myID);
@@ -356,14 +364,22 @@ function nextFotograma(callback){
 		return $.post('getNodos', 'id='+myID);
 	})
 	.then(nodos => {
+		argCallback = nodos;
 		console.log('nodos: ', nodos);
 		
 		graficarNodos(nodos);
+		return $.post('getSustituciones', 'id='+myID);
+	})
+	.then(sustituciones => {
+		console.log('sustituciones: ', sustituciones);
+		console.log('nodos de nuevo: ', argCallback);
+		
+		graficarSustituciones(sustituciones);
 
 		if(callback && typeof(callback) === "function"){
-			callback(nodos);
+			callback(argCallback);
 		}
-	});
+	})
 
 
 }
@@ -439,6 +455,32 @@ function graficarRamasCut(ramas){
 		mapRamasDisponibles.delete(rama.id);
 	}
 }
+
+function graficarSustituciones(susts){
+	for(let i in susts){
+		var sust = susts[i];
+		
+		var idNode_inTree = mapNodos.get(sust.idNodo).id;
+		var rama = treant.tree.connectionStore[idNode_inTree];
+
+		rama.attr('cursor', 'pointer');
+		rama.attr('title', sust.sustitution);
+
+		rama.click(() => {
+			$('#subIndiceSust').text(sust.id);
+			$('#sustitucionText').text(sust.sustitution);
+			$('#sustitucionModel').modal('show');
+		});
+
+		rama.hover(() => {
+			rama.attr('stroke-width', 3);
+		}, () => {
+			rama.attr('stroke-width', 2);
+		});
+	}
+}
+
+
 
 function configButtons_fullScreen(){
 	

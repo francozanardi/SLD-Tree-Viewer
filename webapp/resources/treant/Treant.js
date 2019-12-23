@@ -1007,6 +1007,14 @@
             }
             else {
                 connLine = this._R.path( pathString );
+                
+//    			if(treeNode.connectors.handlerClick){
+//    				connLine.click(handlerClick);
+//    			}
+//    			
+//    			if(treeNode.connectors.handlerHover){
+//    				connLine.hover(handlerHover.in, handlerHover.out);
+//    			}
 								
                 this.connectionStore[treeNode.id] = connLine;
 
@@ -1019,7 +1027,8 @@
                 }
 
                 connLine.attr( parent.connStyle.style );
-
+				connLine.attr('stroke-width', 2);
+				
 				//aca deberiamos borrar al pseudo si quisieramos que no se dibuje linea a través de él.
                 if ( treeNode.drawLineThrough || treeNode.pseudo ) {
                     treeNode.drawLineThroughMe( hidePoint );
@@ -1524,6 +1533,7 @@
 			
 			this.getTree().connectionStore[this.id].connector.attr("stroke", "gray");
 			this.getTree().connectionStore[this.id].cut.attr("stroke", "gray");
+			this.getTree().connectionStore[this.id].cut.attr("stroke-width", 2);
 
         },
 

@@ -252,7 +252,17 @@ public class RotuloParser {
 			}
 		}
 
+	}
+	
+	public String parseSustitution(String sust) {
+		if(raiz == null) {
+			return "";
+		}
 		
+		String sustReplaced = replaceRepVars(sust);
+		sustReplaced = sustReplaced.replaceAll(" \\=", "\\,");
+		
+		return sustReplaced;
 	}
 
 }
