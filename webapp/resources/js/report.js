@@ -1,7 +1,8 @@
 import * as alerts from './alerts.js';
+import {getID} from './graficador.js';
 
 $("#reportSend").click(() => {
-	$.post('notificarError', 'id='+myID+"&descripcion_error="+encodeURIComponent($("#reportDescription").val()))
+	$.post('notificarError', 'id='+getID()+"&descripcion_error="+encodeURIComponent($("#reportDescription").val()))
 	.done(() => {
 		alerts.showAlertSuccess('¡Error enviado!', 'Gracias por reportar el error.');
 	}).fail(() => {

@@ -1,4 +1,4 @@
-import {getCantidadNodos} from './graficador.js';
+import {getCantidadNodos, redrawTree} from './graficador.js';
 
 //si todos son nulls entonces no está en fullscreen.
 function isFullScreenOn() {
@@ -7,7 +7,7 @@ function isFullScreenOn() {
 
 function acomodarTree() {
     setTimeout(function() {
-        treant.tree.redraw();
+        redrawTree();
     }, 500);
 }
 

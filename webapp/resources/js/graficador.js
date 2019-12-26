@@ -96,12 +96,20 @@ export function getCantidadNodos(){
     return mapNodos.size;
 }
 
+export function getID(){
+	return myID;
+}
+
 export function esNodoSolucion(nodo){
 	return nodo.rotulo === "[]";
 }
 
 export function arbolFinalizado(ultimoNodo){
 	return (esNodoSolucion(ultimoNodo) || ultimoNodo.rotulo === "[fail]") && mapRamasDisponibles.size === 0;
+}
+
+export function redrawTree(){
+	treant.tree.redraw();
 }
 
 

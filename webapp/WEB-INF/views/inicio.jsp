@@ -38,7 +38,7 @@ Adem�s minimizar los archivos js utilizados, especialmente codemirror.js. Mira
 <body>
 	<div id="loadDiv" style="display: block; background-color:white; position:absolute; top:0px; left:0px; width:100%; height:100%; z-index:2000;"></div>
 	<nav class="navbar navbar-light bg-light">
-		<span class="navbar-brand mb-0 h1">SLD Tree</span>
+		<span class="navbar-brand mb-0 h1">SLD Tree Generator</span>
 	</nav>
 	<div class="contenedor h-100">
 		<div id="alert" class="alert alert-dismissible collapse">

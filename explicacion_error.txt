@@ -1,6 +1,0 @@
-M = 't', findall(P2, (predicate_property(M:P2, dynamic), clause(M:P2, true), M:P2), PreDin2), length(PreDin2, L).
-
-El problema está acá!!
-Esto genera las soluciones demás!
-
-lo comprobamos usando asserta/1 y luego listing/1!!.
