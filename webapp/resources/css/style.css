@@ -5,10 +5,20 @@ html, body {
   margin: 0;
 }
 
+.contenedor {
+	width: 92%!important;
+	margin: 15px auto;
+}
+
 .CodeMirror {
 	border: 1px solid #aaa;
 	height: 100%;
 	margin-bottom: 10px;
+}
+
+.CodeMirror pre.CodeMirror-placeholder {
+	color: gray;
+	font-style:italic;
 }
 
 .errorCode {

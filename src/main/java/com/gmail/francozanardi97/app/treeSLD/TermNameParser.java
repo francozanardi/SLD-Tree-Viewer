@@ -12,13 +12,13 @@ import org.jpl7.fli.Prolog;
 import com.gmail.francozanardi97.app.dto.NodoTree;
 import com.gmail.francozanardi97.app.dto.ProgramaUsuario;
 
-public class RotuloParser {
+public class TermNameParser {
 	
 	private Map<String, String> repVars;
 	private String varName;
 	private NodoTree raiz;
 	
-	public RotuloParser() {
+	public TermNameParser() {
 		this.varName = "";
 		this.raiz = null;
 	}

@@ -58,17 +58,6 @@ public class InicioController {
 		return "inicio";
 	}
 		
-	@RequestMapping("/getModulos")
-	public @ResponseBody void getModulos() {
-		Query q = new Query("arbol(M, _)");
-		
-		for(Map<String, Term> m: q.allSolutions()) {
-			System.out.println("-> M = " + m.get("M").toString());
-		}
-		
-		q.close();
-	}
-	
 	@RequestMapping(value="/", method=RequestMethod.POST)
 	public @ResponseBody ResponseEntity<String> crearSLD(@ModelAttribute ProgramaUsuario p) {
 		String error = "";

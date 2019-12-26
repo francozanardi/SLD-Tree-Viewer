@@ -32,7 +32,7 @@ public class ArbolSLD {
 	private Map<String, Term>[] valoresVariables;
 	private int solucionActual;
 	
-	private RotuloParser rotuloParser;
+	private TermNameParser termParser;
 
 	
 	private final static int TIMEOUT_QUERY = 9;
@@ -52,7 +52,7 @@ public class ArbolSLD {
 		mapSustitutions = new Hashtable<>();
 		
 		this.solucionActual = 0;
-		this.rotuloParser = new RotuloParser();
+		this.termParser = new TermNameParser();
 		init();
 		
 	}
@@ -72,8 +72,8 @@ public class ArbolSLD {
 			RamaTree[] ramasCut = {};
 			SustitutionTree[] susts = {};
 			
-			rotuloParser.init(nodos[0], programaUsuario);
-			nodos[0].setRotulo(rotuloParser.replaceRepVars(nodos[0].getRotulo()));
+			termParser.init(nodos[0], programaUsuario);
+			nodos[0].setRotulo(termParser.replaceRepVars(nodos[0].getRotulo()));
 
 			
 			while(fot < fotogramaMax) {
@@ -222,7 +222,7 @@ public class ArbolSLD {
 			raiz = new NodoTree(
 					Integer.parseInt(solucion.get("ID").toString()),
 					-1,
-					rotuloParser.termArrayToInfix(solucion.get("Rotulo").toTermArray())
+					termParser.termArrayToInfix(solucion.get("Rotulo").toTermArray())
 				);
 			
 		} else {
@@ -241,11 +241,11 @@ public class ArbolSLD {
 			nodos[i] = new NodoTree(
 										Integer.parseInt(soluciones[i].get("ID").toString()),
 										Integer.parseInt(soluciones[i].get("IDRama").toString()),
-										rotuloParser.termArrayToInfix(soluciones[i].get("Rotulo").toTermArray())
+										termParser.termArrayToInfix(soluciones[i].get("Rotulo").toTermArray())
 									);
 			
 			
-			nodos[i].setRotulo(rotuloParser.replaceRepVars(nodos[i].getRotulo()));
+			nodos[i].setRotulo(termParser.replaceRepVars(nodos[i].getRotulo()));
 		}	
 
 		return nodos;
@@ -289,10 +289,10 @@ public class ArbolSLD {
 			sustitutions[i] = new SustitutionTree(
 										Integer.parseInt(soluciones[i].get("ID").toString()),
 										Integer.parseInt(soluciones[i].get("IDNodo").toString()),
-										rotuloParser.termArrayToInfix(soluciones[i].get("Sust").toTermArray())
+										termParser.termArrayToInfix(soluciones[i].get("Sust").toTermArray())
 									);
 			
-			sustitutions[i].setSustitution(rotuloParser.parseSustitution(sustitutions[i].getSustitution()));
+			sustitutions[i].setSustitution(termParser.parseSustitution(sustitutions[i].getSustitution()));
 		}	
 
 		return sustitutions;
