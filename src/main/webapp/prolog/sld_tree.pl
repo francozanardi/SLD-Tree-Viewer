@@ -1,16 +1,10 @@
-﻿% Una posibilidad para el tema de las sustituciones es manejarlas vía java.
-% Tener en cuenta el predicado numbervars/3 que permite "numerar" las variables en un término.
-% podríamos darle una lista con todos los rótulos, para que nos nombre todas las variables.
-
-:- use_module(library(aggregate)).
+﻿:- use_module(library(aggregate)).
 :- dynamic datos/2.
 :- dynamic arbol/2.
 
-% :- dynamic(unknown(_, fail)).
-
 
 % La idea es hacer un meta-intérprete capaz de realizar un árbol SLD para un programa P.
-% Se hacen uso de assertz y retract para no verse afectado por el backtracking del meta-intérprete y conservar todo nodo,
+% Se hacen uso de assert y retract para no verse afectado por el backtracking del meta-intérprete y conservar todo nodo,
 % de esta manera podremos ver los nodos que llevaron a caminos fallidos y como fue el árbol completo.
 % Además no se acceden a predicados predefinidos por el sistema (built-in) y solo se evalúa la veracidad de estos.
 % crearSLD/3 es el predicado encargado de crear el árbol para una consulta ingreada en su primer argumento.
@@ -287,7 +281,7 @@ solve((A, B), NodoPadre, ModuleName):-
 	% de las conjunciones restantes.
 	b_getval(ultimoNodoNoDeshecho, UltimoNodo),
 	
-	% Antes no usabamos variables globales, pero el problema de esto, es que al querer 
+	% Antes no usabamos variables globales pero el problema de esto es que, al querer 
 	% recuperar el nodo con mayor ID desde el árbol, las variables cambian su representación interna en el rótulo.
 	% Esto no tiene inconvenientes en la simulación del árbol, pero al cambiar la representación interna de las variables,
 	% se dificulta mucho más seguir el rastro a las variables.
@@ -346,10 +340,7 @@ solve(A, nodo(IDPadre, _, _, [A | ConjuncionesRestantes]), ModuleName):-
 	% Verificamos que el predicado no sea uno provisto por el sistema (nodebug), en caso de serlo es privado y no podemos acceder a su cuerpo
 	\+(predicate_property(ModuleName:A, nodebug)),
 	
-	write("Voy a resolver, del usuario: "),write(A),nl,
-	
 	aggregate_all(count, clause(ModuleName:A, _), C), %cuento la cantidad de soluciones alternativas que tiene A.
-	write("Tiene C: "),write(C),nl,
 	C > 0,
 	
 	datos(ModuleName, ultimaID_rama(IDRamaActual)),
@@ -371,7 +362,6 @@ solve(A, nodo(IDPadre, _, _, [A | ConjuncionesRestantes]), ModuleName):-
 	unifiable(A, ACopy, SustNew),
 	vars_to_atom(SustNew, SustNewAtom),
 	componer(SustNewAtom, SustAtom, Comp),
-	write("Comp: "),write(Comp),nl,
 	
 	buscarRamaLibre(ModuleName, RamaLibre, IDPrimeraRama, IDUltimaRama), 
 	agregarSustitucion(ModuleName, RamaLibre, Comp),
@@ -435,8 +425,6 @@ solve(repeat, nodo(IDPadre, _, _, [repeat | ConjuncionesRestantes]), ModuleName)
 	cambiarHijoRama(ModuleName, RamaLibre, ID),
 	aumentarFotogramaActual(ModuleName),
 	
-	write(repeat),
-	write(" es un repeat, por ello no accedemos y creamos rama alternativa."),
 	nl.
 
 % En caso de que A sea un predicado provisto por el sistema, por lo que no podemos acceder a su cuerpo. Por ello solo lo quitamos en el rótulo sin accederlo.
@@ -497,7 +485,6 @@ solve(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes]), ModuleNa
 	unifiable(A, ACopy, SustNew),
 	vars_to_atom(SustNew, SustNewAtom),
 	componer(SustNewAtom, SustAtom, Comp),
-	write("Comp: "),write(Comp),nl,
 	
 	% buscamos la rama libre que será en la cual se agregará el nodo, si la rama fue podada entonces no es tenida en cuenta.
 	buscarRamaLibre(ModuleName, RamaLibre, IDPrimeraRama, IDUltimaRama),
@@ -517,9 +504,7 @@ solve(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes]), ModuleNa
 % En caso de que A esté definida por el usuario y no se satisfaga entonces backtracking.
 solve(A, nodo(IDPadre, _, _, _), ModuleName):-
 	\+(predicate_property(ModuleName:A, nodebug)),
-	
-	write("Veremos si va a fallar, del usuario: "),write(A),nl,
-	
+		
 	\+(clause(ModuleName:A, _)), % si A no se puede satisfacer con nada entonces falla.
 	!, % por cuestiones de eficiencia.
 	
@@ -535,11 +520,6 @@ solve(A, nodo(IDPadre, _, _, _), ModuleName):-
 	
 % En caso de que A sea provista por el sistema (built-in) y no se satisfaga entonces backtracking.
 solve(A, nodo(IDPadre, _, _, _), ModuleName):-
-	% A \= (_, _),
-	% predicate_property(A, nodebug),
-	% \+(A),
-	% acá la condición junto al cut no son necesarias, dado a que no hay más alternativas y las condiciones son excluyentes y extensivas (i.e.: abarcan todas las posibilidades)
-	
 	agregarNodo(ModuleName, [fail], IDPadre, nodo(ID, _, _, _)),
 	agregarRama(ModuleName, IDPadre, ID, _),
 	aumentarFotogramaActual(ModuleName),
@@ -570,19 +550,12 @@ crearSLD(A, ModuleName, Path):-
 	assertz(arbol(ModuleName, nodo(0, -1, 0, Rotulo, AtomRotulo))), % Agregamos la raiz del árbol en el fotograma 0.
 	
 	solve(A, nodo(0, -1, 0, Rotulo), ModuleName).
-	% terms_to_atoms_(ModuleName).
-	% findall(ElementoArbol, (arbol(ElementoArbol), writeln(ElementoArbol)), Lista).
-	
-	%unload_file(Path).
 
-% crearSLD(_, M, _):-
-	% terms_to_atoms(M).
 
 
 restablecerPredicadosDinamicos(_, Ant, Ant):- !.
 
 restablecerPredicadosDinamicos(M, Ant, New):-
-	writeln('son distintos'),
 	forall(member(PN, New), 
 	(
 		PN = [HN, _],
@@ -709,17 +682,13 @@ extract_vars_in_term(X, Y):-
 	compound(X),
 	compound_name_arity(X, _, LX),
 	vars_in_compound_to_atom(X, LX, Y).
-	
-	% arg/3, compound/1, var/1, atom/1, compound_name_arguments/3
-	% term_to_atom/2 para pasar de var a atom.
+
 
 vars_to_atom([], []):-
 	!.
 	
 vars_to_atom([X | Xs], [Y | Ys]):-
-	% write("Voy a atomizar X: "), write(X), nl,
 	extract_vars_in_term(X, Y),
-	% write("X atomizado: "), write(X), nl, nl,
 	vars_to_atom(Xs, Ys).
 
 

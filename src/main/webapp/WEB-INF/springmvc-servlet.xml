@@ -27,6 +27,15 @@
 		</property>
 
 	</bean>
+	
+	<!-- <bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource"> -->
+	    <!-- <property name="driverClassName" value="com.mysql.cj.jdbc.Driver"/> -->
+	    <!-- <property name="url" value="jdbc:mysql://localhost:3306/sldtree?serverTimezone=America/Argentina/Buenos_Aires"/> -->
+	    <!-- <property name="username" value="admin"/> -->
+	    <!-- <property name="password" value="admin"/> -->
+	<!-- </bean> -->
+	
+	<context:property-placeholder location="classpath:jdbc.properties"/>
 
 	<bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
 	    <property name="driverClassName" value="${jdbc.driverClassName}"/>
@@ -35,7 +44,6 @@
 	    <property name="password" value="${db.password}"/>
 	</bean>
 	
-	<context:property-placeholder location="classpath:jdbc.properties"/>
 
 
 </beans>
