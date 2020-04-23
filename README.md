@@ -11,7 +11,7 @@ $ git clone https://github.com/francozanardi/SLD-Tree-Viewer.git
 O descárguelo [aquí](https://github.com/francozanardi/SLD-Tree-Viewer/archive/master.zip)
 
 ## Pre-requisitos
-* [Swi-prolog](https://www.swi-prolog.org/download/stable) (Al instalarlo puede elegir la opción para agregarlo a la variable de entorno _PATH_)
+* [Swi-prolog](https://www.swi-prolog.org/download/stable)
 * [JDK 1.8](https://www.oracle.com/java/technologies/javase-jdk8-downloads.html) o una versión superior
 * [Maven](http://maven.apache.org/download.cgi)
 
@@ -52,7 +52,7 @@ Predicados predefinidos (built-in predicates) simulados.
 * [!/0](https://www.swi-prolog.org/pldoc/doc_for?object=!/0)
 * [repeat/0](https://www.swi-prolog.org/pldoc/doc_for?object=repeat/0)
 
-Además debemos tener en cuenta las siguientes consideraciones.
+Además debemos considerar que:
 * El programa también tiene en cuenta el uso de predicados dinámicos. Es decir, se tiene el funcionamiento esperado con [assert/1](https://www.swi-prolog.org/pldoc/man?predicate=assert/1), [retract/1](https://www.swi-prolog.org/pldoc/doc_for?object=retract/1) y otros.
 * Las sustituciones realizadas pueden visualizarse al presionar las ramas del árbol.
 * Intermente se calcula todo el árbol SLD antes de mostrarse. Por lo cual, si la cantidad de soluciones de la consulta es potencialmente _infinita_, no podremos obtener un resultado.
