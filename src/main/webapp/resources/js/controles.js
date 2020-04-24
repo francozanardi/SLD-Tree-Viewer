@@ -8,10 +8,10 @@ $('#statusButton').click(() => {
 
 	if(graficador.esNodoSolucion(ultimoNodo)){
 		status = "Waiting";
-
-		if(graficador.arbolFinalizado(ultimoNodo)){
-			status = "Finished";
-		}
+	}
+	
+	if(graficador.arbolFinalizado(ultimoNodo)){
+		status = "Finished";
 	}
 
 	$('#estadoArbol').text(status);

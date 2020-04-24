@@ -54,7 +54,7 @@ Predicados predefinidos (built-in predicates) simulados.
 
 Además debemos considerar que:
 * El programa también tiene en cuenta el uso de predicados dinámicos. Es decir, se tiene el funcionamiento esperado con [assert/1](https://www.swi-prolog.org/pldoc/man?predicate=assert/1), [retract/1](https://www.swi-prolog.org/pldoc/doc_for?object=retract/1) y otros.
-* Las sustituciones realizadas pueden visualizarse al presionar las ramas del árbol. Éstas se encuentran en estapa de desarrollo y pueden presentar errores.
+* Las sustituciones realizadas pueden visualizarse al presionar las ramas del árbol. Éstas se encuentran en etapa de desarrollo y pueden presentar errores.
 * Intermente se calcula todo el árbol SLD antes de mostrarse. Por lo cual, si la cantidad de soluciones de la consulta es potencialmente _infinita_, no podremos obtener un resultado.
 
 ## Detalles técnicos
