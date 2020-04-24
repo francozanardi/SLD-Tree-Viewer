@@ -14,7 +14,7 @@ import com.gmail.francozanardi97.app.dto.ProgramaUsuario;
 
 public class TermNameParser {
 	
-	private Map<String, String> repVars;
+	private Map<String, String> repVars; // mapeo desde representación interna de variables al nombre dado a la variable.
 	private String varName;
 	private NodoTree raiz;
 	
@@ -52,7 +52,6 @@ public class TermNameParser {
 		if(term.arity() == 2) {
 
 			if(term.name().equals("[|]") || term.name().equals("'[|]'") ) {
-				System.out.println("-----> term: " + term.toString());
 				try {
 					return termArrayToInfix(term.toTermArray());
 				} catch(JPLException e) {
@@ -138,7 +137,6 @@ public class TermNameParser {
 					varName = consulta.substring(c, consulta.length());
 				}
 
-				
 				repVars.put(varRep, varName);
 				
 			}
@@ -213,7 +211,7 @@ public class TermNameParser {
 	private void updateVarName() {
 		if(varName.length() == 0) {
 			varName = "A";
-			if(repVars.get(varName) != null) {
+			if(repVars.values().contains(varName)) {
 				updateVarName();
 			}
 			
@@ -223,31 +221,25 @@ public class TermNameParser {
 			char ultimoChar;
 			boolean huboReemplazo = false;
 			
-			while(i >= 0) {
+			while(i >= 0 && !huboReemplazo) {
 				ultimoChar = varName.charAt(i);
 				
 				if(ultimoChar == 90) {
 					varName = varName.substring(0, i) + 'A' + varName.substring(i+1);
-					huboReemplazo = true;
 				} else {
-					break;
+					varName = varName.substring(0, i) + ((char)(ultimoChar+1)) + varName.substring(i+1);
+					huboReemplazo = true;
 				}
 				
 				
 				i--;
 			}
 			
-			ultimoChar = varName.charAt(varName.length()-1);
-			char newChar = (char) (ultimoChar+1);
-			
-			if(huboReemplazo) {
-				varName += newChar;
-			} else {
-				varName = varName.substring(0, varName.length()-1) + newChar;
+			if(!huboReemplazo){
+				varName = "A" + varName;
 			}
 			
-			
-			if(repVars.get(varName) != null) {
+			if(repVars.values().contains(varName)) {
 				updateVarName();
 			}
 		}

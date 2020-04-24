@@ -64,8 +64,8 @@ public class ArbolSLD {
 			crearArbolSLD();
 			Map<String, Term> solFot = Query.oneSolution(String.format("datos('%s', fotogramaActual(FotMax))", namePU));
 			int fotogramaMax = Integer.parseInt(solFot.get("FotMax").toString());
-			
-			
+		
+		
 			int fot = 0;
 			NodoTree[] nodos = {_getRaiz()};
 			RamaTree[] ramas = {};

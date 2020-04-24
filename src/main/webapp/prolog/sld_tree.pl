@@ -279,6 +279,7 @@ solve((A, B), NodoPadre, ModuleName):-
 	% Aquí tomamos el nodo con mayor ID ya que, A podría haber sido una regla y tomar muchos nodos para solucionarse.
 	% Si se está aquí entonces A se resolvió, y el nodo con ID mayor es quien lo resolvió, entonces este nodo será el padre 
 	% de las conjunciones restantes.
+	
 	b_getval(ultimoNodoNoDeshecho, UltimoNodo),
 	
 	% Antes no usabamos variables globales pero el problema de esto es que, al querer 
@@ -348,8 +349,7 @@ solve(A, nodo(IDPadre, _, _, [A | ConjuncionesRestantes]), ModuleName):-
 	
 	agregarRamas(ModuleName, C, IDPadre),
 	
-	datos(ModuleName, ultimaID_rama(IDUltimaRama)), %Guardamos el ID de la última rama colocada.
-	
+	datos(ModuleName, ultimaID_rama(IDUltimaRama)), %Guardamos el ID de la última rama colocada.	
 
 	copy_term(A, ACopy),
 	unifiable(A, ACopy, Sust),
@@ -361,13 +361,15 @@ solve(A, nodo(IDPadre, _, _, [A | ConjuncionesRestantes]), ModuleName):-
 	
 	unifiable(A, ACopy, SustNew),
 	vars_to_atom(SustNew, SustNewAtom),
-	componer(SustNewAtom, SustAtom, Comp),
+	componerSustitucion(SustNewAtom, SustAtom, Comp),
 	
 	buscarRamaLibre(ModuleName, RamaLibre, IDPrimeraRama, IDUltimaRama), 
+	
 	agregarSustitucion(ModuleName, RamaLibre, Comp),
 	% buscamos la rama libre que ocupará el nuevo nodo.
 	% Si las ramas han sido podadas entonces no serán tenidas en cuenta como libres.
 	
+
 	(
 		(B = true) ->
 			% A es un hecho definido por el usuario y se satisface, por lo tanto el nuevo rótulo será el del padre sin A.
@@ -484,7 +486,7 @@ solve(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes]), ModuleNa
 
 	unifiable(A, ACopy, SustNew),
 	vars_to_atom(SustNew, SustNewAtom),
-	componer(SustNewAtom, SustAtom, Comp),
+	componerSustitucion(SustNewAtom, SustAtom, Comp),
 	
 	% buscamos la rama libre que será en la cual se agregará el nodo, si la rama fue podada entonces no es tenida en cuenta.
 	buscarRamaLibre(ModuleName, RamaLibre, IDPrimeraRama, IDUltimaRama),
@@ -692,14 +694,17 @@ vars_to_atom([X | Xs], [Y | Ys]):-
 	vars_to_atom(Xs, Ys).
 
 
-componer([], [], []):-
+componerSustitucion([], [], []):-
 	!.
 
-componer([X | Xs], [X | Ys], [X | Rs]):-
+componerSustitucion([X | Xs], [X | Ys], [X | Rs]):-
 	!,
-	componer(Xs, Ys, Rs).
+	componerSustitucion(Xs, Ys, Rs).
 	
-componer([A = B | Xs], [A = C | Ys], [C = B | Rs]):-
+componerSustitucion([A = B | Xs], [A = C | Ys], [C = B | Rs]):-
 	!,
-	componer(Xs, Ys, Rs).
+	componerSustitucion(Xs, Ys, Rs).
 	
+componerSustitucion([_ | Xs], [_ | Ys], Rs):-
+	!,
+	componerSustitucion(Xs, Ys, Rs).

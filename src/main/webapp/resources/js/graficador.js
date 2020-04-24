@@ -101,10 +101,18 @@ export function getID(){
 }
 
 export function esNodoSolucion(nodo){
+	if(nodo === undefined){
+		return false;
+	}
+
 	return nodo.rotulo === "[]";
 }
 
 export function arbolFinalizado(ultimoNodo){
+	if(ultimoNodo === undefined){
+		return false;
+	}
+
 	return (esNodoSolucion(ultimoNodo) || ultimoNodo.rotulo === "[fail]") && mapRamasDisponibles.size === 0;
 }
 
