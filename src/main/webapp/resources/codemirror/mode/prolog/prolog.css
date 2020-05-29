@@ -1,0 +1,7 @@
+.cm-s-prolog span.cm-number	       {color: darksalmon;}
+.cm-s-prolog span.cm-string	       {color: gray; font-style: italic;}
+.cm-s-prolog span.cm-predicate	       {color: blue; font-weight: bold;}
+.cm-s-prolog span.cm-builtin	       {color: blue; font-style: italic;}
+.cm-s-prolog span.cm-variable	       {color: #800; font-weight: bold;} /* Normal variable */
+.cm-s-prolog span.cm-comment	       {color: #060; font-style: italic; line-height: 1em;}
+.cm-s-prolog span.cm-keyword	       {font-weight: bold;}
