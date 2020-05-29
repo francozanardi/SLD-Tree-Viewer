@@ -32,7 +32,7 @@ Ejecute la web utilizando **Tomcat7**.
 ```
 Podrá acceder a la web desde 
 ```
-    http://localhost:8080/sld_tree_viewer
+    http://localhost:8080/sld_tree_generator
 ```
 
 ## Principales tecnologías utilizadas
