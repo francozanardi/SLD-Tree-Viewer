@@ -2,7 +2,7 @@
 Aplicación web en java que permite visualizar un árbol SLD a partir de un código fuente en Prolog y una consulta sobre éste.
 ![Ejemplo en ejecución](/images/example.png)
 
-## Obtenención del proyecto
+## Obtención del proyecto
 Clone el repositorio desde GitHub.
 ```
 $ git clone https://github.com/francozanardi/SLD-Tree-Generator.git
@@ -41,21 +41,21 @@ Podrá acceder a la web desde
 * [Swi-prolog](https://www.swi-prolog.org/)
 
 ## Estado actual
-El proyecto se encuentra en etapa de desarrollo y su documentación está incompleta. Además pueden haber casos no verificados que provoquen erorres inesperados.
+El proyecto se encuentra en etapa de desarrollo y su documentación está incompleta. Además pueden haber casos no verificados que provoquen errores inesperados.
 
 ## Alcance del proyecto
 Predicados predefinidos (built-in predicates) simulados.
 * [,/2](https://www.swi-prolog.org/pldoc/doc_for?object=(%27,%27)/2)
 * [;/2](https://www.swi-prolog.org/pldoc/doc_for?object=(%3B)/2)
 * [->/2](https://www.swi-prolog.org/pldoc/doc_for?object=(-%3E)/2)
-* [not/1](https://www.swi-prolog.org/pldoc/man?predicate=not/1) o [\+/2](https://www.swi-prolog.org/pldoc/man?predicate=%5C%2B/1)
+* [not/1](https://www.swi-prolog.org/pldoc/man?predicate=not/1)
 * [!/0](https://www.swi-prolog.org/pldoc/doc_for?object=!/0)
 * [repeat/0](https://www.swi-prolog.org/pldoc/doc_for?object=repeat/0)
 
 Además debemos considerar que:
 * El programa también tiene en cuenta el uso de predicados dinámicos. Es decir, se tiene el funcionamiento esperado con [assert/1](https://www.swi-prolog.org/pldoc/man?predicate=assert/1), [retract/1](https://www.swi-prolog.org/pldoc/doc_for?object=retract/1) y otros.
 * Las sustituciones realizadas pueden visualizarse al presionar las ramas del árbol. Éstas se encuentran en etapa de desarrollo y pueden presentar errores.
-* Intermente se calcula todo el árbol SLD antes de mostrarse. Por lo cual, si la cantidad de soluciones de la consulta es potencialmente _infinita_, no podremos obtener un resultado.
+* Internamente se calcula todo el árbol SLD antes de mostrarse. Por lo cual, si la cantidad de soluciones de la consulta es potencialmente _infinita_, no podremos obtener un resultado.
 
 ## Detalles técnicos
 Internamente, el proyecto consta de:
