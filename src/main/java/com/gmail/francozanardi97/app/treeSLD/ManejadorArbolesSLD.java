@@ -38,6 +38,9 @@ public class ManejadorArbolesSLD {
 	
 	
 	private void cargarMetainterprete(String path) {
+		//con JPL > 7.4 tendríamos que usar:
+		//Query q = new Query(new Compound("consult", new Term[] {new Atom(path)}));
+		
 		Query q = 
 		        new Query( 
 		            "consult", 

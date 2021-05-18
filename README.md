@@ -12,18 +12,20 @@ O descárguelo [aquí](https://github.com/francozanardi/SLD-Tree-Generator/archi
 
 ## Pre-requisitos
 * [Swi-prolog](https://www.swi-prolog.org/download/stable)
-* [JDK 1.8](https://www.oracle.com/java/technologies/javase-jdk8-downloads.html) o una versión superior
+* [JAVA JDK 8u251](https://www.oracle.com/ar/java/technologies/javase/javase8u211-later-archive-downloads.html) o una versión inferior
 * [Maven](http://maven.apache.org/download.cgi)
 
 Para instalar Maven es recomendable seguir esta [guía](http://maven.apache.org/install.html) oficial.
 
 ## Instalación
 Una vez dentro de la carpeta que contiene el repositorio, debe realizar lo siguiente.
-1. Descargue e instale las dependencias del proyecto con [Maven](http://maven.apache.org/).
+1. Agregue **Swi-prolog** a la variable de entorno _PATH_ en caso de que no lo esté.
+2. Es importante que se haya agregado la variable de entorno **JAVA_HOME** y que esta tenga la ruta de una versión menor o igual a Java 8u251. Teniendo configurado correctamente la variable de entorno _PATH_ para que use la variable **JAVA_HOME**.
+3. Utilizando la consola, ubíquese en el directorio donde haya descargado el repositorio.
+4. Descargue e instale las dependencias del proyecto con [Maven](http://maven.apache.org/).
 ```
     $ mvn clean install
 ```
-2. Agregue **Swi-prolog** a la variable de entorno _PATH_ en caso de que no lo esté.
 
 ## Ejecución
 Ejecute la web utilizando **Tomcat7**.
@@ -44,7 +46,7 @@ Podrá acceder a la web desde
 El proyecto se encuentra en etapa de desarrollo y su documentación está incompleta. Además pueden haber casos no verificados que provoquen errores inesperados.
 
 ## Alcance del proyecto
-Predicados predefinidos (built-in predicates) simulados.
+Predicados predefinidos simulados.
 * [,/2](https://www.swi-prolog.org/pldoc/doc_for?object=(%27,%27)/2)
 * [;/2](https://www.swi-prolog.org/pldoc/doc_for?object=(%3B)/2)
 * [->/2](https://www.swi-prolog.org/pldoc/doc_for?object=(-%3E)/2)

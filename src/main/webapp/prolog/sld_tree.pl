@@ -154,6 +154,8 @@ resolverCut(_, nodo(_, _, _, Rotulo), C):-
 	CantCuts < C,
 	!.
 	
+resolverCut(ModuleName, nodo(0, -1, _, _), _):- !. %si llegamos a la raiz, no necesitamos subir más.
+	
 resolverCut(ModuleName, nodo(_, IDPadre, _, _), C):-
 	arbol(ModuleName, nodo(IDPadre, IDAbuelo, FotPadre, RotuloPadre, _)), % obtenemos el padre del nodo.
 	
@@ -431,7 +433,7 @@ solve(repeat, nodo(IDPadre, _, _, [repeat | ConjuncionesRestantes]), ModuleName)
 
 % En caso de que A sea un predicado provisto por el sistema, por lo que no podemos acceder a su cuerpo. Por ello solo lo quitamos en el rótulo sin accederlo.
 % Además A tiene al menos una solución.
-solve(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes]), ModuleName):-
+solve(A, nodo(IDPadre, IDAbuelo, FotPadre, [A | ConjuncionesRestantes]), ModuleName):-
 	predicate_property(ModuleName:A, nodebug),
 	
 	findall(PA, 
@@ -492,7 +494,7 @@ solve(A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes]), ModuleNa
 	buscarRamaLibre(ModuleName, RamaLibre, IDPrimeraRama, IDUltimaRama),
 	agregarSustitucion(ModuleName, RamaLibre, Comp),
 
-	evaluarCutEnA(ModuleName, A, nodo(IDPadre, IDAbulo, FotPadre, [A | ConjuncionesRestantes])),
+	evaluarCutEnA(ModuleName, A, nodo(IDPadre, IDAbuelo, FotPadre, [A | ConjuncionesRestantes])),
 	
 	agregarNodo(ModuleName, ConjuncionesRestantes, IDPadre, nodo(ID, _, _, _)),
 

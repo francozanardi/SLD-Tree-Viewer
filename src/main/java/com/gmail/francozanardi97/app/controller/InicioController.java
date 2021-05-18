@@ -53,6 +53,7 @@ public class InicioController {
 		} catch (PrologException e) {
 			error = e.term().arg(1).name();
 		} catch (JPLException e) {
+			e.printStackTrace();
 			error = e.getMessage();
 		} catch (Throwable e) {
 			e.printStackTrace();

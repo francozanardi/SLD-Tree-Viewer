@@ -71,6 +71,7 @@
 				<configuration>
 					<path>/sld_tree_generator</path>
 					<ignorePackaging>true</ignorePackaging>
+					<port>8080</port>
 				</configuration>
 			</plugin>
 		</plugins>

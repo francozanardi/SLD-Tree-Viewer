@@ -75,8 +75,11 @@ public class ArbolSLD {
 			termParser.init(nodos[0], programaUsuario);
 			nodos[0].setRotulo(termParser.replaceRepVars(nodos[0].getRotulo()));
 
-			
-			while(fot < fotogramaMax) {
+			//agregamos que si hay nodos, ramas, ramasCut o sustituciones sigamos ciclando porque si en el programa
+			//en prolog se produce un error inesperado, el último fotograma queda igual al fotograma máximo y no uno mayor (como se espera).
+			//esto nos sucedió usando un ! en la consulta, pero ya solucionamos este caso. 
+			//De todas maneras lo dejamos por algún caso inesperado.
+			while(fot < fotogramaMax || nodos.length > 0 || ramas.length > 0 || ramasCut.length > 0 || susts.length > 0) {
 				mapNodos.put(fot, nodos);
 				mapRamas.put(fot, ramas);
 				mapRamasCut.put(fot, ramasCut);

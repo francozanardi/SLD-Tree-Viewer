@@ -30,6 +30,8 @@ src/test/
 sql/borrar.sql
 src/main/webapp/prolog/sld_tree_nomodule.pl
 presentacion.pdf
+NOTAS.txt
+TO_DO.txt
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*

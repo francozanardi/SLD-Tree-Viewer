@@ -91,8 +91,7 @@ Adem�s minimizar los archivos js utilizados, especialmente codemirror.js. Mira
 
 				<div class="btn-group col-lg-12" style="margin-bottom: 15px; padding-left: 0px; padding-right: 0px;" role="group">
 					<button class="btn btn-primary" type="button" name="status" id="statusButton">Status</button>
-					<button class="btn btn-primary" type="button" name="nextStep" id="nextStepButton">Next step</button>
-					<button class="btn btn-primary" type="button" name="skip" id="skipButton">Skip</button>
+					<button class="btn btn-primary" type="button" name="skip" id="skipButton">Next step</button>
 					<button class="btn btn-primary" type="button" name="skipAll" id="skipAllButton">Skip all</button>
 				</div>
 

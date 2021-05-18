@@ -30,7 +30,7 @@ $('#stopButton').click(() => {
 		document.getElementById("nextButton").style.display = "none";
 		document.getElementById("stopButton").style.display = "none";
 
-		document.getElementById("nextStepButton").style.display = "none";
+//		document.getElementById("nextStepButton").style.display = "none";
 		document.getElementById("skipButton").style.display = "none";
 		document.getElementById("skipAllButton").style.display = "none";
 		document.getElementById("statusButton").style.display = "none";
@@ -80,24 +80,24 @@ $('#skipAllButton').click(() => {
 
 });
 
-$('#nextStepButton').click(() => {
-	desactivarControlesNext();
-
-	graficador.nextFotograma((nodos) => {
-		var interval = setInterval(function() {
-
-			if(graficador.hayAnimacionesEnCurso()){
-				if(nodos.length == 1){
-					actualizarControles(nodos[0]);
-				}
-				
-				clearInterval(interval);
-			}
-
-
-		}, 100);
-	});
-});
+//$('#nextStepButton').click(() => {
+//	desactivarControlesNext();
+//
+//	graficador.nextFotograma((nodos) => {
+//		var interval = setInterval(function() {
+//
+//			if(graficador.hayAnimacionesEnCurso()){
+//				if(nodos.length == 1){
+//					actualizarControles(nodos[0]);
+//				}
+//				
+//				clearInterval(interval);
+//			}
+//
+//
+//		}, 100);
+//	});
+//});
 
 
 $('#program').submit(
@@ -110,13 +110,13 @@ $('#program').submit(
                 document.getElementById("nextButton").style.display = "block";
                 document.getElementById("stopButton").style.display = "block";
     
-                document.getElementById("nextStepButton").style.display = "block";
+//                document.getElementById("nextStepButton").style.display = "block";
                 document.getElementById("skipButton").style.display = "block";
                 document.getElementById("skipAllButton").style.display = "block";
                 document.getElementById("statusButton").style.display = "block";
                 
                 document.getElementById("nextButton").disabled = true;
-                document.getElementById("nextStepButton").disabled = false;
+//                document.getElementById("nextStepButton").disabled = false;
                 document.getElementById("skipButton").disabled = false;
                 document.getElementById("skipAllButton").disabled = false;
                 document.getElementById("statusButton").disabled = false;
@@ -162,13 +162,13 @@ function actualizarControles(ultimoNodo){
 }
 
 function activarControlesNext(){
-	$('#nextStepButton').attr("disabled", false);
+//	$('#nextStepButton').attr("disabled", false);
 	$('#skipButton').attr("disabled", false);
 	$('#skipAllButton').attr("disabled", false);
 }
 
 function desactivarControlesNext(){
-	$('#nextStepButton').attr("disabled", true);
+//	$('#nextStepButton').attr("disabled", true);
 	$('#skipButton').attr("disabled", true);
 	$('#skipAllButton').attr("disabled", true);
 }
